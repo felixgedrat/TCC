@@ -74,8 +74,8 @@ int compareInts(const void* a, const void* b) {
  * @input two arrays to be compared
  * @output intersection of two arrays
  */
-int* intersect(int* arr1, int len1, int* arr2, int len2, int* result_len) {
-	int* result = (int*)malloc(sizeof(int) * (len1 > len2 ? len2 : len1));
+void intersect(int* arr1, int len1, int* arr2, int len2, int* result_len, int* result) {
+	//int* result = (int*)malloc(sizeof(int) * (len1 > len2 ? len2 : len1));
 	int idx = 0;
 
 	for (int i = 0; i < len1; i++) {
@@ -87,5 +87,62 @@ int* intersect(int* arr1, int len1, int* arr2, int len2, int* result_len) {
 		}
 	}
 	*result_len = idx;
-	return result;
+	return;
+}
+
+/**
+ * @brief Finds first value in array >= lower_bound, assuming array is sorted in ascending order
+ * @input array, size of array and lower bound
+ * @output index of value that met the criteria
+ */
+int lowerBound(int* arr, int size, int lower_bound) {
+    int low = 0;
+    int high = size - 1;
+
+    while (low < high) {
+        int mid = (low + high) / 2;
+        if (arr[mid] < lower_bound) {
+            low = mid + 1;
+        } else {
+            high = mid;
+        }
+    }
+    return low;
+}
+
+/**
+ * @brief Finds first value in array <= upper_bound, assuming array is sorted in ascending order
+ * @input array, size of array and upper bound
+ * @output index of value that met the criteria
+ */
+int upperBound(int* arr, int size, int upper_bound) {
+    int low = 0;
+    int high = size - 1;
+
+    while (low < high) {
+        int mid = (low + high + 1) / 2;
+        if (arr[mid] > upper_bound) {
+            high = mid - 1;
+        } else {
+            low = mid;
+        }
+    }
+    return high;
+}
+
+/**
+ * @brief Finds values >= lower bound and <= upper_bound in array, assuming array is sorted in ascending order
+ * @input array, bounds and result pointer and array len
+ * @output void
+ */
+void findValuesInRange(int* arr, int size, int lower_bound, int upper_bound, int* result_len, int* result) {
+    int start = lowerBound(arr, size, lower_bound);
+    int end = upperBound(arr, size, upper_bound);
+
+    printf("Valores entre %d e %d:\n", lower_bound, upper_bound);
+    for (int i = start; i <= end; i++) {
+        printf("%d ", arr[i]);
+        result[(*result_len)++] = arr[i];
+    }
+    printf("\n");
 }
