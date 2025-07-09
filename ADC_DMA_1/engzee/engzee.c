@@ -13,6 +13,8 @@
 #include "mathematics.h"
 #include "prefiltering.h"
 #include "christov.h"
+#include "engzee.h"
+
 
 /**
  * @brief Engzee Differentiation
@@ -33,16 +35,10 @@ void engzee_differentiation(float *input, float *diff_E, int length) {
  * @input Digitized input, Engzee differentiated array, sample buffer index, MM and Thi_list
  * @output Spikes detected - Engzee
  */
-void engzee_lourenco(uint16_t* mock_input, float* diff_E, int length, int sample, int fs, int *r_peaks, int *peaks_index, float *MM, int *thi_list) {
-	int ms200 = 50;
-	int ms1200 = 300;
-	int ms160 = 40;
-	int neg_threshold = 2;
-	int max_qrs_size = 320;
-	int max_section_size = 25;
+void engzee_lourenco(uint16_t* mock_input, float* diff_E, int length, int sample, int fs, int *r_peaks, int *peaks_index, float *MM, int *thi_list) {	// note: mudar nome de diff_E pq esse eh diferenciado e filtrado
 	float M_slope[250];
 	float M = 0;
-	int QRS[max_qrs_size];
+	int QRS[max_qrs_size];																			// note: abarcar em struct
 	int qrs_index = 0;
 	int thi = 0;
 	int counter = 0;
@@ -77,9 +73,9 @@ void engzee_lourenco(uint16_t* mock_input, float* diff_E, int length, int sample
 		//------------------------------ELIF 1-----------------------------------------------
 		else if (qrs_index && i < QRS[qrs_index - 1] + ms200) {
 			if (QRS[qrs_index - 1] < start){
-				newM5 = 0.6 * max2(diff_E, 0, (i - start));
+				newM5 = 0.6 * max2(diff_E, 0, (i - start));		// note: aqui deveriamos detectar da ultima amostra em QRS ate o valor atual, descontinuidade?
 			}
-			else{
+			else{												// note: entender o uso desse i-start no acesso ao array
 				if ((i - start) - QRS[qrs_index - 1]){
 					newM5 = 0;
 					}
@@ -96,11 +92,11 @@ void engzee_lourenco(uint16_t* mock_input, float* diff_E, int length, int sample
 		else if (newM5 != 0 && qrs_index && i == QRS[qrs_index - 1] + ms200) {
 			if (i >= 5){
 				for (int j = 0; j < 4; j++) {
-					MM[j] = MM[j + 1];
+					MM[j] = MM[j + 1];														// note: criar funcao pop + criar funcao append (quais arrays vao ter malloc?)
 				}
 				MM[4] = newM5;
 			}
-			M = (MM[0] + MM[1] + MM[2] + MM[3] + MM[4]) / 5;
+			M = (MM[0] + MM[1] + MM[2] + MM[3] + MM[4]) / 5;								// note: criar funcao mean
 		}
 		//------------------------------ELIF 3-------------------------------------------
 		else if (qrs_index && i > QRS[qrs_index - 1] + ms200 && i < QRS[qrs_index - 1] + ms1200) {
@@ -113,7 +109,7 @@ void engzee_lourenco(uint16_t* mock_input, float* diff_E, int length, int sample
 		//------------------------------ DETECÇÃO ----------------------------------------
 		if (!qrs_index && diff_E[(i-start)] > M) {
 			QRS[qrs_index] = i;
-			thi_list[qrs_index] = i;
+			thi_list[qrs_index] = i;														// note: thi_list pode ser definido dentro de engzee (n precisa de historico)
 			thi = 1;
 			qrs_index++;
 		} else if (qrs_index && i > QRS[qrs_index - 1] + ms200 && diff_E[(i-start)] > M) {
@@ -142,7 +138,7 @@ void engzee_lourenco(uint16_t* mock_input, float* diff_E, int length, int sample
 		//-------------------------- ENCONTRAR OS PICOS DE FATO ---------------------------
 		if (counter > neg_threshold) {
 			for (int k = thi_list[qrs_index - 1] - 2; k < i; k++) {
-				unfiltered_section[section_index] = mock_input[k];
+				unfiltered_section[section_index] = mock_input[k];		// note: me parece estranho
 				section_index++;
 			}
 			maxi = indexMax(unfiltered_section, max_section_size);
@@ -153,7 +149,7 @@ void engzee_lourenco(uint16_t* mock_input, float* diff_E, int length, int sample
 			thi = 0;
 			thf = 0;
 			section_index = 0;
-			memset(unfiltered_section, 0, max_section_size * sizeof(int));
+			memset(unfiltered_section, 0, max_section_size * sizeof(int));		// note: pq zera unfiltered_section?
 		}
 	}
 	if (first == 0){

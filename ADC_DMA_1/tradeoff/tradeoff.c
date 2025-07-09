@@ -16,6 +16,7 @@
 //#define MAX_LEN 320
 #define MAX_LEN 500
 #define MAX_SEARCH_INTERVAL 200
+#define DELTA 40	// DELTA = missed beats will be searched in the detections[i]+delta, detections[i+1]-delta section
 
 /**
  * @brief Tradeoff
@@ -30,11 +31,11 @@ void tradeoff(int* engzee_detection, int len_engzee, int* christov_detection, in
         detections[i] = engzee_detection[i];
     }
 
-    if (*len_detections > 20) {
+    if (*len_detections > 2*DELTA) {
     	for (int i = 0; i < len_engzee - 1; i++) {
 
-    	        int a = detections[i] + 10;         // determines upper and lower bounds for searching missed
-    	        int b = detections[i + 1] - 10;     //      detections in Christov
+    	        int a = detections[i] + DELTA;         // determines upper and lower bounds for searching missed
+    	        int b = detections[i + 1] - DELTA;     //      detections in Christov
     	        if (b - a < 0) {
     	            continue;
     	        }

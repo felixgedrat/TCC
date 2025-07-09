@@ -15,8 +15,9 @@
  * @output digital input filtered, total taps
  */
 void prefiltering(uint16_t *digitalized_ecg, uint16_t length, uint16_t *total_taps, float *filtered_ecg) {
+	float b_i = 1/7;
     float b1[] = { 0.2, 0.2, 0.2, 0.2, 0.2 };
-    float b2[] = { 0.14285, 0.14285, 0.14285, 0.14285, 0.14285, 0.14285, 0.14285 };
+    float b2[] = { b_i, b_i, b_i, b_i, b_i, b_i, b_i};
     uint16_t a[] = {1};
     uint16_t len_b1 = sizeof(b1) / sizeof(b1[0]);
     uint16_t len_b2 = sizeof(b2) / sizeof(b2[0]);

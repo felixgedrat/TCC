@@ -12,8 +12,7 @@
 #include <math.h>
 #include "mathematics.h"
 #include "prefiltering.h"
-
-#define MAX_LENGTH 1000
+#include "christov.h"
 
 /**
  * @brief Christov Differentiation
@@ -54,21 +53,16 @@ void chistov_noise(float *diff_signal, float *diff_filtered_signal, uint16_t tot
  */
 void christov(uint16_t* mock_input, float* MA3, int length, int sample, int fs, int* QRS, int *len_detection, float *MM, float *RR, int *R_idx) {
 	int qrs_index = *len_detection;
-	int max_qrs_size = 320;
 	float M = 0;
 	float newM5 = 0;
 	float M_slope[250];
 	float F = 0;
 	int R = 0;
 	int Rm = 0;
-	int ms50 = 12;
-	int ms200 = 50;
-	int ms350 = 87;
-	int ms1200 = 300;
 	int first = *len_detection;
 	int start = (length * sample);
 	int idx = *R_idx;
-	float increment = 0.0016064257028112205;
+	const float increment = 0.0016064257028112205;
 
 	for (int j = 0; j < ms1200 - ms200; ++j) {
 		M_slope[j] = 1.0 - j * increment;
