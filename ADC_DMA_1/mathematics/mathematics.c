@@ -146,3 +146,13 @@ void findValuesInRange(int* arr, int size, int lower_bound, int upper_bound, int
     }
     printf("\n");
 }
+
+/**
+ * @brief Returns mean of array of 5 values
+ * @input array
+ * @output mean
+ */
+float mean5(float* arr) {
+    float mean = (arr[0]+arr[1]+arr[2]+arr[3]+arr[4])/5;
+    return mean;
+}

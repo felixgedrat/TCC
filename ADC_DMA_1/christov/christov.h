@@ -15,6 +15,7 @@
 #include <math.h>
 #include "mathematics.h"
 #include "prefiltering.h"
+#include "main.h"
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
@@ -29,6 +30,7 @@
 
 void christov_differentiation(float *input, float *diff_C, int length);
 void chistov_noise(float *diff_signal, float *diff_filtered_signal, uint16_t total_taps, int length);
-void christov(uint16_t* mock_input, float* MA3, int length, int sample, int fs, int* QRS, int *len_detection, float *MM, float *RR, int *R_idx);
+void christov(uint16_t* mock_input, float* MA3, int length, int sample, ChristovState* state);
+
 
 #endif /* CHRISTOV_H_ */

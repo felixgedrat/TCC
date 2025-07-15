@@ -36,6 +36,70 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
+#define BUF_LEN 2500
+#define BUF_LEN_HALF 1250
+#define MAX_SECTION 25		// length of unfiltered section
+#define THI_LIST_SIZE 320
+#define M_SLOPE_SIZE 250
+#define MAX_QRS 320
+#define MAX_R_PEAKS 320
+
+typedef struct {
+    float M;
+    float MM[5];
+//    int mm_count;
+
+    int QRS[MAX_QRS];
+    int qrs_index;
+
+    int thi_list[THI_LIST_SIZE];
+    int thi;
+
+    int thf;
+    int counter;
+
+    float newM5;
+
+    int unfiltered_section[MAX_SECTION];
+    int section_index;
+    int maxi;
+
+    float M_slope[M_SLOPE_SIZE];  // para fs = 250Hz
+
+    int i_global;
+    uint8_t fs;	// sampling frequency
+
+    int r_peaks[MAX_R_PEAKS];
+    int* peaks_index;
+
+    int len_engzee;
+} EngzeeState;
+
+typedef struct {
+    float M;
+    float MM[5];
+    int mm_count;
+
+    float newM5;
+
+    int QRS[MAX_QRS];
+    int qrs_index;
+
+    float F;
+
+    int R;
+    int RR[5];
+    int rr_index;
+    int Rm;
+
+    float MFR;
+
+    float M_slope[250];
+
+    int fs;
+
+    int len_detection;
+} ChristovState;
 
 /* USER CODE END ET */
 

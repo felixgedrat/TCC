@@ -39,8 +39,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define BUF_LEN 2500
-#define BUF_LEN_HALF 1250
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -64,7 +63,7 @@ uint8_t sample1 = 0;
 uint8_t sample2 = 1;
 
 // frequency sample
-uint8_t fs = 250;
+//uint8_t fs = 250;
 
 // Variaveis do prefiltering
 float filtered_ecg[BUF_LEN_HALF];
@@ -77,16 +76,16 @@ float diff_filtered_E[BUF_LEN_HALF];
 
 int engzee_detection[320];
 int christov_detection[320];
-int len_engzee = 0;
+//int len_engzee = 0;
 int len_christov = 0;
 int detections[500];
 int len_detections = 0;
 
-float MM_engzee[5] = {0};
+//float MM_engzee[5] = {0};
 float MM_christov[5] = {0};
 float RR[5] = {0};
 int R_idx = 0;
-int thi_list[320];
+//int thi_list[320];
 
 
 /* USER CODE END PV */
@@ -115,6 +114,21 @@ int main(void)
 
   /* USER CODE BEGIN 1 */
 	GPIO_PinState PB12bitstatus = GPIO_PIN_RESET;
+
+	// Initialize struct
+	EngzeeState engzee_state;
+	ChristovState christov_state;
+	memset(&engzee_state, 0, sizeof(EngzeeState)); // zera todos os campos
+	memset(&christov_state, 0, sizeof(ChristovState)); // zera todos os campos
+	float increment = 0.0016064257028112205;
+	for (int j = 0; j < ms1200 - ms200; ++j) {
+			engzee_state.M_slope[j] = 1.0 - j * increment;
+			christov_state.M_slope[j] = engzee_state.M_slope[j];
+		}
+	engzee_state.fs = 250;
+	christov_state.fs = 250;
+
+
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -195,14 +209,14 @@ int main(void)
 		 * parameters from past detection
 		 * @output engzee detections
 		 */
-		engzee_lourenco(&buffer[0], diff_filtered_E, BUF_LEN_HALF, sample1, fs, engzee_detection, &len_engzee, MM_engzee, thi_list);
+		engzee_lourenco(&buffer[0], diff_filtered_E, BUF_LEN_HALF, sample1, &engzee_state); // fs, engzee_detection, &len_engzee, MM_engzee, thi_list);
 		/**
 		 * @brief Call christov to find christov detections
 		 * @input Christov filtered signal, digital input, len half buffer, relative sample, frequency sample,
 		 * parameters from past detection
 		 * @output christov detections
 		 */
-		christov(&buffer[0], diff_filtered_C, BUF_LEN_HALF - 2, sample1, fs, christov_detection, &len_christov, MM_christov, RR, &R_idx);
+		christov(&buffer[0], diff_filtered_C, BUF_LEN_HALF - 2, sample1, &christov_state);//fs, christov_detection, &len_christov, MM_christov, RR, &R_idx);
 
 		total_taps = 0;
 		sample1 += 2;
@@ -244,14 +258,14 @@ int main(void)
 		 * parameters from past detection
 		 * @output engzee detections
 		 */
-		engzee_lourenco(&buffer[BUF_LEN_HALF], diff_filtered_E, BUF_LEN_HALF, sample2, fs, engzee_detection, &len_engzee, MM_engzee, thi_list);
+		engzee_lourenco(&buffer[0], diff_filtered_E, BUF_LEN_HALF, sample1, &engzee_state); // fs, engzee_detection, &len_engzee, MM_engzee, thi_list);
 		/**
 		 * @brief Call christov to find christov detections
 		 * @input Christov filtered signal, digital input, len half buffer, relative sample, frequency sample,
 		 * parameters from past detection
 		 * @output christov detections
 		 */
-		christov(&buffer[BUF_LEN_HALF], diff_filtered_C, BUF_LEN_HALF - 2, sample2, fs, christov_detection, &len_christov, MM_christov, RR, &R_idx);
+		christov(&buffer[0], diff_filtered_C, BUF_LEN_HALF - 2, sample1, &christov_state);
 
 		total_taps = 0;
 		sample2 += 2;

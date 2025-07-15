@@ -22,5 +22,6 @@ void intersect(int* arr1, int len1, int* arr2, int len2, int* result_len, int* r
 int lowerBound(int* arr, int size, int lower_bound);
 int upperBound(int* arr, int size, int upper_bound);
 void findValuesInRange(int* arr, int size, int lower_bound, int upper_bound, int* result_len, int* result);
+float mean5(float* arr) ;
 
 #endif /* MATHEMATICS_H_ */

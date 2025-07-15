@@ -14,6 +14,7 @@
 #include "prefiltering.h"
 #include "christov.h"
 #include "engzee.h"
+#include "main.h"
 
 
 /**
@@ -35,129 +36,129 @@ void engzee_differentiation(float *input, float *diff_E, int length) {
  * @input Digitized input, Engzee differentiated array, sample buffer index, MM and Thi_list
  * @output Spikes detected - Engzee
  */
-void engzee_lourenco(uint16_t* mock_input, float* diff_E, int length, int sample, int fs, int *r_peaks, int *peaks_index, float *MM, int *thi_list) {	// note: mudar nome de diff_E pq esse eh diferenciado e filtrado
-	float M_slope[250];
-	float M = 0;
-	int QRS[max_qrs_size];																			// note: abarcar em struct
-	int qrs_index = 0;
-	int thi = 0;
-	int counter = 0;
-	int thf = 0;
-	float newM5 = 0;
-	int unfiltered_section[25] = {0};
-	int section_index = 0;
-	int maxi;
+void engzee_lourenco(uint16_t* mock_input, float* diff_E, int length, int sample, EngzeeState* state){ //int *r_peaks, int *peaks_index, float *MM, int *thi_list) {	// note: mudar nome de diff_E pq esse eh diferenciado e filtrado
+//	float M_slope[250];
+//	state->M = 0;
+//	int QRS[max_qrs_size];																			// note: abarcar em struct
+//	int qrs_index = 0;
+//	int thi = 0;
+//	int counter = 0;
+//	int thf = 0;
+//	float newM5 = 0;
+//	int unfiltered_section[25] = {0};
+//	int section_index = 0;
+//	int maxi;
 
-	int first = *peaks_index;
+	int first = *(state->peaks_index);
 	int start = (length * sample);
 
-	float increment = 0.0016064257028112205;
+//	float increment = 0.0016064257028112205;
 
-	for (int j = 0; j < ms1200 - ms200; ++j) {
-		M_slope[j] = 1.0 - j * increment;
-	}
+//	for (int j = 0; j < ms1200 - ms200; ++j) {
+//		M_slope[j] = 1.0 - j * increment;
+//	}
 
 	for (int i = start; i < (length * (sample + 1)); i++) {
 		//------------------------- AQUI EH PARA ENCONTRAR M -----------------------------
-		if (i < 5 * fs) {
-			M = 0.6 * max(diff_E, i + 1);
+		if (i < 5 * state->fs) {
+			state->M = 0.6 * max(diff_E, i + 1);
 			if (i < 5){
-				MM[i] = M;
+				state->MM[i] = state->M;
 			} else if (i >= 5) {
 				for (int j = 0; j < 4; j++) {
-					MM[j] = MM[j + 1];
+					state->MM[j] = state->MM[j + 1];
 				}
-				MM[4] = M;
+				state->MM[4] = state->M;
 			}
 		}
 		//------------------------------ELIF 1-----------------------------------------------
-		else if (qrs_index && i < QRS[qrs_index - 1] + ms200) {
-			if (QRS[qrs_index - 1] < start){
-				newM5 = 0.6 * max2(diff_E, 0, (i - start));		// note: aqui deveriamos detectar da ultima amostra em QRS ate o valor atual, descontinuidade?
+		else if (state->qrs_index && i < state->QRS[state->qrs_index - 1] + ms200) {
+			if (state->QRS[state->qrs_index - 1] < start){
+				state->newM5 = 0.6 * max2(diff_E, 0, (i - start));		// note: aqui deveriamos detectar da ultima amostra em QRS ate o valor atual, descontinuidade?
 			}
 			else{												// note: entender o uso desse i-start no acesso ao array
-				if ((i - start) - QRS[qrs_index - 1]){
-					newM5 = 0;
+				if ((i - start) - state->QRS[state->qrs_index - 1]){
+					state->newM5 = 0;
 					}
 				else{
-					newM5 = 0.6 * max2(diff_E, QRS[qrs_index - 1], (i - start));
+					state->newM5 = 0.6 * max2(diff_E, state->QRS[state->qrs_index - 1], (i - start));
 
 				}
 			}
-			if (newM5 > 1.5 * MM[4]) {
-				newM5 = 1.1 * MM[4];
+			if (state->newM5 > 1.5 * state->MM[4]) {
+				state->newM5 = 1.1 * state->MM[4];
 			}
 		}
 		//------------------------------ELIF 2-----------------------------------------------
-		else if (newM5 != 0 && qrs_index && i == QRS[qrs_index - 1] + ms200) {
+		else if (state->newM5 != 0 && state->qrs_index && i == state->QRS[state->qrs_index - 1] + ms200) {
 			if (i >= 5){
 				for (int j = 0; j < 4; j++) {
-					MM[j] = MM[j + 1];														// note: criar funcao pop + criar funcao append (quais arrays vao ter malloc?)
+					state->MM[j] = state->MM[j + 1];														// note: criar funcao pop + criar funcao append (quais arrays vao ter malloc?)
 				}
-				MM[4] = newM5;
+				state->MM[4] = state->newM5;
 			}
-			M = (MM[0] + MM[1] + MM[2] + MM[3] + MM[4]) / 5;								// note: criar funcao mean
+			state->M = mean5(state->MM);
 		}
 		//------------------------------ELIF 3-------------------------------------------
-		else if (qrs_index && i > QRS[qrs_index - 1] + ms200 && i < QRS[qrs_index - 1] + ms1200) {
-			M = ((MM[0] + MM[1] + MM[2] + MM[3] + MM[4]) / 5) * M_slope[i - (QRS[qrs_index - 1] + ms200)];
+		else if (state->qrs_index && i > state->QRS[state->qrs_index - 1] + ms200 && i < state->QRS[state->qrs_index - 1] + ms1200) {
+			state->M = (mean5(state->MM)) * state->M_slope[i - (state->QRS[state->qrs_index - 1] + ms200)];
 		}
 		//------------------------------ELIF 4-------------------------------------------
-		else if (qrs_index && i > QRS[qrs_index - 1] + ms1200) {
-			M = 0.6 * ((MM[0] + MM[1] + MM[2] + MM[3] + MM[4]) / 5);
+		else if (state->qrs_index && i > state->QRS[state->qrs_index - 1] + ms1200) {
+			state->M = 0.6 * (mean5(state->MM));
 		}
 		//------------------------------ DETECÇÃO ----------------------------------------
-		if (!qrs_index && diff_E[(i-start)] > M) {
-			QRS[qrs_index] = i;
-			thi_list[qrs_index] = i;														// note: thi_list pode ser definido dentro de engzee (n precisa de historico)
-			thi = 1;
-			qrs_index++;
-		} else if (qrs_index && i > QRS[qrs_index - 1] + ms200 && diff_E[(i-start)] > M) {
-			QRS[qrs_index] = i;
-			thi_list[qrs_index] = i;
-			thi = 1;
-			qrs_index++;
+		if (!(state->qrs_index) && diff_E[(i-start)] > state->M) {
+			state->QRS[state->qrs_index] = i;
+			state->thi_list[state->qrs_index] = i;														// note: thi_list pode ser definido dentro de engzee (n precisa de historico)
+			state->thi = 1;
+			state->qrs_index++;
+		} else if (state->qrs_index && i > state->QRS[state->qrs_index - 1] + ms200 && diff_E[(i-start)] > state->M) {
+			state->QRS[state->qrs_index] = i;
+			state->thi_list[state->qrs_index] = i;
+			state->thi = 1;
+			state->qrs_index++;
 		}
 		//------------------------------- THI e THF -------------------------------------
-		if (thi && i < thi_list[qrs_index - 1] + ms160) {
-			if (diff_E[(i-start)] < -M && diff_E[i - start - 1] > -M) {
-				thf = 1;
+		if (state->thi && i < state->thi_list[state->qrs_index - 1] + ms160) {
+			if (diff_E[(i-start)] < -(state->M) && diff_E[i - start - 1] > -(state->M)) {
+				state->thf = 1;
 			}
-			if (thf && diff_E[(i-start)] < -M) {
-				counter++;
-			} else if (diff_E[(i-start)] > -M && thf) {
-				counter = 0;
-				thi = 0;
-				thf = 0;
+			if (state->thf && diff_E[(i-start)] < -(state->M)) {
+				state->counter++;
+			} else if (diff_E[(i-start)] > -(state->M) && state->thf) {
+				state->counter = 0;
+				state->thi = 0;
+				state->thf = 0;
 			}
-		} else if (thi && i > thi_list[qrs_index - 1] + ms160) {
-			counter = 0;
-			thi = 0;
-			thf = 0;
+		} else if (state->thi && i > state->thi_list[state->qrs_index - 1] + ms160) {
+			state->counter = 0;
+			state->thi = 0;
+			state->thf = 0;
 		}
 		//-------------------------- ENCONTRAR OS PICOS DE FATO ---------------------------
-		if (counter > neg_threshold) {
-			for (int k = thi_list[qrs_index - 1] - 2; k < i; k++) {
-				unfiltered_section[section_index] = mock_input[k];		// note: me parece estranho
-				section_index++;
+		if (state->counter > neg_threshold) {
+			for (int k = state->thi_list[state->qrs_index - 1] - 2; k < i; k++) {
+				state->unfiltered_section[state->section_index] = mock_input[k];		// note: me parece estranho
+				state->section_index++;
 			}
-			maxi = indexMax(unfiltered_section, max_section_size);
+			maxi = indexMax(state->unfiltered_section, max_section_size);
 
-			r_peaks[*peaks_index] = maxi + thi_list[qrs_index - 1] - neg_threshold;
-			(*peaks_index)++;
-			counter = 0;
-			thi = 0;
-			thf = 0;
-			section_index = 0;
-			memset(unfiltered_section, 0, max_section_size * sizeof(int));		// note: pq zera unfiltered_section?
+			state->r_peaks[*state->peaks_index] = maxi + state->thi_list[state->qrs_index - 1] - neg_threshold;
+			(*state->peaks_index)++;
+			state->counter = 0;
+			state->thi = 0;
+			state->thf = 0;
+			state->section_index = 0;
+			memset(state->unfiltered_section, 0, max_section_size * sizeof(int));		// note: pq zera unfiltered_section?
 		}
 	}
 	if (first == 0){
-		for (int l = 0; l < (*peaks_index); l++) {
-			r_peaks[l] = r_peaks[l + 1];
+		for (int l = 0; l < (*state->peaks_index); l++) {
+			state->r_peaks[l] = state->r_peaks[l + 1];
 		}
 		first++;
-		(*peaks_index)--;
+		(*state->peaks_index)--;
 	}
 
 }

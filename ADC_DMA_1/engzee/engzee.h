@@ -16,6 +16,7 @@
 #include "mathematics.h"
 #include "prefiltering.h"
 #include "christov.h"
+#include "main.h"
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
@@ -28,6 +29,6 @@
 /* USER CODE END PM */
 
 void engzee_differentiation(float *input, float *diff_E, int length);
-void engzee_lourenco(uint16_t* mock_input, float* diff_E, int length, int sample, int fs, int *r_peaks, int *peaks_index,  float *MM, int *thi_list);
+void engzee_lourenco(uint16_t* mock_input, float* diff_E, int length, int sample, EngzeeState* state);
 
 #endif /* ENGZEE_H_ */
