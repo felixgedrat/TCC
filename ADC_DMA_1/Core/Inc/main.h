@@ -87,10 +87,10 @@ typedef struct {
 
     float F;
 
-    int R;
-    int RR[5];
+    float R;
+    float RR[5];
     int rr_index;
-    int Rm;
+    float Rm;
 
     float MFR;
 

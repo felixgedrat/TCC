@@ -12,6 +12,6 @@
 #include <stdlib.h>
 #include "filter.h"
 
-void prefiltering(uint16_t *digitalized_ecg, uint16_t length, uint16_t *total_taps, float *filtered_ecg);
+void prefiltering(uint16_t *digitalized_ecg, uint16_t *total_taps, float *filtered_ecg);
 
 #endif /* PREFILTERING_H_ */

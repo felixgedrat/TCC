@@ -20,7 +20,8 @@
  * @input values ​​after filtering, sample size
  * @output differentiated values ​​- Christov
  */
-void christov_differentiation(float *input, float *diff_C, int length) {
+void christov_differentiation(float *input, float *diff_C) {
+	int length = BUF_LEN_HALF;
 	int count = 0;
 	for (int i = 1; i < length - 1; i++) {
 		diff_C[count++] = fabs(input[i + 1] - input[i - 1]);
@@ -32,7 +33,7 @@ void christov_differentiation(float *input, float *diff_C, int length) {
  * @input differentiated values
  * @output filtered values
  */
-void chistov_noise(float *diff_signal, float *diff_filtered_signal, uint16_t total_taps, int length) {
+void christov_noise(float *diff_signal, float *diff_filtered_signal, uint16_t total_taps, int length) {
 	float b[10] = { 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1 };
 	uint16_t a[] = {1};
 	uint16_t len_b = sizeof(b) / sizeof(b[0]);
@@ -52,7 +53,7 @@ void chistov_noise(float *diff_signal, float *diff_filtered_signal, uint16_t tot
  * @input Digitized input, Christov differentiated array, sample buffer index, MM and RR
  * @output Spikes detected - Christov
  */
-void christov(uint16_t* mock_input, float* MA3, int length, int sample, ChristovState* state){ // int fs, int* QRS, int *len_detection, float *MM, float *RR, int *R_idx) {
+void christov(uint16_t* mock_input, float* MA3, int sample, ChristovState* state){ // int fs, int* QRS, int *len_detection, float *MM, float *RR, int *R_idx) {
 	//int qrs_index = *len_detection;
 	// float M = 0;
 	// float newM5 = 0;
@@ -61,6 +62,7 @@ void christov(uint16_t* mock_input, float* MA3, int length, int sample, Christov
 //	int R = 0;
 //	int Rm = 0;
 //	int first = *len_detection;
+	int length = BUF_LEN_HALF - 2;
 	int start = (length * sample);
 //	int idx = *R_idx;
 //	const float increment = 0.0016064257028112205;
@@ -73,6 +75,9 @@ void christov(uint16_t* mock_input, float* MA3, int length, int sample, Christov
 	float F_section[ms350+50];
 
 	for (int i = start; i < length * (sample + 1); i++) {
+
+		//////////////////////////////////////////////////
+		// M threshold
 		if ((i-start) < 5 * state->fs) {
 			state->M = 0.6 * max(MA3, i - start + 1);
 			if (i < 5){
@@ -112,6 +117,9 @@ void christov(uint16_t* mock_input, float* MA3, int length, int sample, Christov
 			state->M = 0.6 * (mean5(state->MM));
 		}
 
+
+		//////////////////////////////////////////////////
+		// F threshold
 		if ((i - start) > ms350) {
 //			if (F_section == NULL) {
 //				exit(1);
@@ -135,13 +143,17 @@ void christov(uint16_t* mock_input, float* MA3, int length, int sample, Christov
 			state->F = state->F + ((max_latest - max_earliest) / 150.0);
 
 		}
+		//////////////////////////////////////////////////
+		// R threshold
 
 		if (state->qrs_index && i < state->QRS[state->qrs_index - 1] + (2.0 / 3.0 * state->Rm)) {
 			state->R = 0;
 		} else if (state->qrs_index && i > state->QRS[state->qrs_index - 1] + (2.0 / 3.0 * state->Rm) && i < state->QRS[state->qrs_index - 1] + state->Rm) {
-			int dec = (state->M - mean5(state->MM)) / 1.4;
-			state->R = 0 + dec;
+			state->R = (state->M - mean5(state->MM)) / 1.4;
 		}
+
+		//////////////////////////////////////////////////
+		// MFR threshold
 
 		state->MFR = state->M + state->F + state->R;
 

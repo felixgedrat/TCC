@@ -22,7 +22,8 @@
  * @input values ​​after filtering
  * @output differentiated values ​​- Engzee
  */
-void engzee_differentiation(float *input, float *diff_E, int length) {
+void engzee_differentiation(float *input, float *diff_E) {
+	int length = BUF_LEN_HALF;
 	for (int i = 0; i < 4; i++){
 		diff_E[i] = 0.0;
 	}
@@ -36,7 +37,7 @@ void engzee_differentiation(float *input, float *diff_E, int length) {
  * @input Digitized input, Engzee differentiated array, sample buffer index, MM and Thi_list
  * @output Spikes detected - Engzee
  */
-void engzee_lourenco(uint16_t* mock_input, float* diff_E, int length, int sample, EngzeeState* state){ //int *r_peaks, int *peaks_index, float *MM, int *thi_list) {	// note: mudar nome de diff_E pq esse eh diferenciado e filtrado
+void engzee_lourenco(uint16_t* mock_input, float* diff_E, int sample, EngzeeState* state){ //int *r_peaks, int *peaks_index, float *MM, int *thi_list) {	// note: mudar nome de diff_E pq esse eh diferenciado e filtrado
 //	float M_slope[250];
 //	state->M = 0;
 //	int QRS[max_qrs_size];																			// note: abarcar em struct
@@ -48,7 +49,7 @@ void engzee_lourenco(uint16_t* mock_input, float* diff_E, int length, int sample
 //	int unfiltered_section[25] = {0};
 //	int section_index = 0;
 //	int maxi;
-
+	int length = BUF_LEN_HALF;
 	int first = *(state->peaks_index);
 	int start = (length * sample);
 

@@ -54,7 +54,7 @@ DMA_HandleTypeDef hdma_adc1;
 TIM_HandleTypeDef htim2;
 
 /* USER CODE BEGIN PV */
-uint16_t buffer[BUF_LEN];
+uint32_t buffer[BUF_LEN];
 
 uint8_t fill = 0; // 0: buffer vazio; 1: primeira metade cheia; 2: segunda metade cheia
 
@@ -178,45 +178,45 @@ int main(void)
 		 * @input Digital input, size of half buffer
 		 * @output Filtered input
 		 */
-		prefiltering(&buffer[0], BUF_LEN_HALF, &total_taps, filtered_ecg);
+		prefiltering(&buffer[0], &total_taps, filtered_ecg);
 		/**
 		 * @brief Christov Differentiation
 		 * @input input prefiltered, size of half buffer
 		 * @output signal differentiated - Christov
 		 */
-		christov_differentiation(filtered_ecg, diff_C, BUF_LEN_HALF);
+		christov_differentiation(filtered_ecg, diff_C);
 		/**
 		 * @brief Engzee Differentiation
 		 * @input input prefiltered, size of half buffer
 		 * @output signal differentiated - Engzee
 		 */
-		engzee_differentiation(filtered_ecg, diff_E, BUF_LEN_HALF);
+		engzee_differentiation(filtered_ecg, diff_E);
 		/**
 		 * @brief Call christov_noise to diff C
 		 * @input signal differentiated - Christov, size of half buffer, total taps
 		 * @output Christov filtered signal
 		 */
-		chistov_noise(diff_C, diff_filtered_C, total_taps, BUF_LEN_HALF - 2);
+		christov_noise(diff_C, diff_filtered_C, total_taps, BUF_LEN_HALF - 2);
 		/**
 		 * @brief Call christov_noise to diff E
 		 * @input signal differentiated - Engzee, size of half buffer, total taps
 		 * @output Engzee filtered signal
 		 */
-		chistov_noise(diff_E, diff_filtered_E, total_taps, BUF_LEN_HALF);
+		christov_noise(diff_E, diff_filtered_E, total_taps, BUF_LEN_HALF);
 		/**
 		 * @brief Call engzee_lourenco to find engzee detections
 		 * @input Engzee filtered signal, digital input, len half buffer, relative sample, frequency sample,
 		 * parameters from past detection
 		 * @output engzee detections
 		 */
-		engzee_lourenco(&buffer[0], diff_filtered_E, BUF_LEN_HALF, sample1, &engzee_state); // fs, engzee_detection, &len_engzee, MM_engzee, thi_list);
+		engzee_lourenco(&buffer[0], diff_filtered_E, sample1, &engzee_state); // fs, engzee_detection, &len_engzee, MM_engzee, thi_list);
 		/**
 		 * @brief Call christov to find christov detections
 		 * @input Christov filtered signal, digital input, len half buffer, relative sample, frequency sample,
 		 * parameters from past detection
 		 * @output christov detections
 		 */
-		christov(&buffer[0], diff_filtered_C, BUF_LEN_HALF - 2, sample1, &christov_state);//fs, christov_detection, &len_christov, MM_christov, RR, &R_idx);
+		christov(&buffer[0], diff_filtered_C, sample1, &christov_state);//fs, christov_detection, &len_christov, MM_christov, RR, &R_idx);
 
 		total_taps = 0;
 		sample1 += 2;
@@ -227,45 +227,45 @@ int main(void)
 		 * @input Digital input, size of half buffer
 		 * @output Filtered input
 		 */
-		prefiltering(&buffer[BUF_LEN_HALF], BUF_LEN_HALF, &total_taps, filtered_ecg);
+		prefiltering(&buffer[BUF_LEN_HALF], &total_taps, filtered_ecg);
 		/**
 		 * @brief Christov Differentiation
 		 * @input input prefiltered, size of half buffer
 		 * @output signal differentiated - Christov
 		 */
-		christov_differentiation(filtered_ecg, diff_C, BUF_LEN_HALF);
+		christov_differentiation(filtered_ecg, diff_C);
 		/**
 		 * @brief Engzee Differentiation
 		 * @input input prefiltered, size of half buffer
 		 * @output signal differentiated - Engzee
 		 */
-		engzee_differentiation(filtered_ecg, diff_E, BUF_LEN_HALF);
+		engzee_differentiation(filtered_ecg, diff_E);
 		/**
 		 * @brief Call christov_noise to diff C
 		 * @input signal differentiated - Christov, size of half buffer, total taps
 		 * @output Christov filtered signal
 		 */
-		chistov_noise(diff_C, diff_filtered_C, total_taps, BUF_LEN_HALF - 2);
+		christov_noise(diff_C, diff_filtered_C, total_taps, BUF_LEN_HALF - 2);
 		/**
 		 * @brief Call christov_noise to diff E
 		 * @input signal differentiated - Engzee, size of half buffer, total taps
 		 * @output Engzee filtered signal
 		 */
-		chistov_noise(diff_E, diff_filtered_E, total_taps, BUF_LEN_HALF);
+		christov_noise(diff_E, diff_filtered_E, total_taps, BUF_LEN_HALF);
 		/**
 		 * @brief Call engzee_lourenco to find engzee detections
 		 * @input Engzee filtered signal, digital input, len half buffer, relative sample, frequency sample,
 		 * parameters from past detection
 		 * @output engzee detections
 		 */
-		engzee_lourenco(&buffer[0], diff_filtered_E, BUF_LEN_HALF, sample1, &engzee_state); // fs, engzee_detection, &len_engzee, MM_engzee, thi_list);
+		engzee_lourenco(&buffer[0], diff_filtered_E, sample1, &engzee_state); // fs, engzee_detection, &len_engzee, MM_engzee, thi_list);
 		/**
 		 * @brief Call christov to find christov detections
 		 * @input Christov filtered signal, digital input, len half buffer, relative sample, frequency sample,
 		 * parameters from past detection
 		 * @output christov detections
 		 */
-		christov(&buffer[0], diff_filtered_C, BUF_LEN_HALF - 2, sample1, &christov_state);
+		christov(&buffer[0], diff_filtered_C, sample1, &christov_state);
 
 		total_taps = 0;
 		sample2 += 2;

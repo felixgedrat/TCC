@@ -8,13 +8,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "filter.h"
-
+#include "main.h"
 /**
  * @brief prefilter
  * @input digital input, size of digital input
  * @output digital input filtered, total taps
  */
-void prefiltering(uint16_t *digitalized_ecg, uint16_t length, uint16_t *total_taps, float *filtered_ecg) {
+void prefiltering(uint16_t *digitalized_ecg, uint16_t *total_taps, float *filtered_ecg) {
+	uint16_t length = BUF_LEN_HALF;
 	float b_i = 1/7;
     float b1[] = { 0.2, 0.2, 0.2, 0.2, 0.2 };
     float b2[] = { b_i, b_i, b_i, b_i, b_i, b_i, b_i};

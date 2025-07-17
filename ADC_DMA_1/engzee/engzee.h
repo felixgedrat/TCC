@@ -28,7 +28,7 @@
 #define max_section_size 25
 /* USER CODE END PM */
 
-void engzee_differentiation(float *input, float *diff_E, int length);
-void engzee_lourenco(uint16_t* mock_input, float* diff_E, int length, int sample, EngzeeState* state);
+void engzee_differentiation(float *input, float *diff_E);
+void engzee_lourenco(uint16_t* mock_input, float* diff_E, int sample, EngzeeState* state);
 
 #endif /* ENGZEE_H_ */
