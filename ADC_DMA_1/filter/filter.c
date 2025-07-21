@@ -17,7 +17,7 @@
  * @input integer array to be filtered
  * @output float filtered array
  */
-void intfilter(float* b, uint16_t* a, uint16_t len_b, uint16_t len_a, uint16_t* x, float* y, uint16_t len_x) {
+void intfilter(float* b, uint16_t* a, uint16_t len_b, uint16_t len_a, uint32_t* x, float* y, uint16_t len_x) {
     for (int i = 0; i < len_x; i++) {
         y[i] = 0;
 

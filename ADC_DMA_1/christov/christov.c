@@ -53,7 +53,7 @@ void christov_noise(float *diff_signal, float *diff_filtered_signal, uint16_t to
  * @input Digitized input, Christov differentiated array, sample buffer index, MM and RR
  * @output Spikes detected - Christov
  */
-void christov(uint16_t* mock_input, float* MA3, int sample, ChristovState* state){ // int fs, int* QRS, int *len_detection, float *MM, float *RR, int *R_idx) {
+void christov(float* MA3, int sample, ChristovState* state){ // int fs, int* QRS, int *len_detection, float *MM, float *RR, int *R_idx) {
 	//int qrs_index = *len_detection;
 	// float M = 0;
 	// float newM5 = 0;
@@ -180,6 +180,7 @@ void christov(uint16_t* mock_input, float* MA3, int sample, ChristovState* state
 
 //	free(F_section);
 
+	// the lines below do the functionality of a pop(0) operation in Python
 	for (int l = state->len_detection; l < state->qrs_index; l++) {
 		state->QRS[l] = state->QRS[l + 1];
 	}

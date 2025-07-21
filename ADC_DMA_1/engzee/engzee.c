@@ -37,7 +37,7 @@ void engzee_differentiation(float *input, float *diff_E) {
  * @input Digitized input, Engzee differentiated array, sample buffer index, MM and Thi_list
  * @output Spikes detected - Engzee
  */
-void engzee_lourenco(uint16_t* mock_input, float* diff_E, int sample, EngzeeState* state){ //int *r_peaks, int *peaks_index, float *MM, int *thi_list) {	// note: mudar nome de diff_E pq esse eh diferenciado e filtrado
+void engzee_lourenco(uint32_t* unfiltered_ecg, float* diff_E, int sample, EngzeeState* state){ //int *r_peaks, int *peaks_index, float *MM, int *thi_list) {	// note: mudar nome de diff_E pq esse eh diferenciado e filtrado
 //	float M_slope[250];
 //	state->M = 0;
 //	int QRS[max_qrs_size];																			// note: abarcar em struct
@@ -140,10 +140,10 @@ void engzee_lourenco(uint16_t* mock_input, float* diff_E, int sample, EngzeeStat
 		//-------------------------- ENCONTRAR OS PICOS DE FATO ---------------------------
 		if (state->counter > neg_threshold) {
 			for (int k = state->thi_list[state->qrs_index - 1] - 2; k < i; k++) {
-				state->unfiltered_section[state->section_index] = mock_input[k];		// note: me parece estranho
+				state->unfiltered_section[state->section_index] = unfiltered_ecg[k];		// note: me parece estranho
 				state->section_index++;
 			}
-			maxi = indexMax(state->unfiltered_section, max_section_size);
+			int maxi = indexMax(state->unfiltered_section, max_section_size);
 
 			state->r_peaks[*state->peaks_index] = maxi + state->thi_list[state->qrs_index - 1] - neg_threshold;
 			(*state->peaks_index)++;

@@ -14,7 +14,7 @@
 #include <stdint.h>
 #include <math.h>
 
-void intfilter(float * b, uint16_t* a, uint16_t len_b, uint16_t len_a, uint16_t* x, float* y, uint16_t len_x);
+void intfilter(float* b, uint16_t* a, uint16_t len_b, uint16_t len_a, uint32_t* x, float* y, uint16_t len_x);
 void floatfilter(float *b, uint16_t *a, uint16_t len_b, uint16_t len_a, float *x, float *y, uint16_t len_x);
 
 #endif /* FILTER_H_ */

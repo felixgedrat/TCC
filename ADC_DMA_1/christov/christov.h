@@ -30,7 +30,7 @@
 
 void christov_differentiation(float *input, float *diff_C);
 void christov_noise(float *diff_signal, float *diff_filtered_signal, uint16_t total_taps, int length);
-void christov(uint16_t* mock_input, float* MA3, int sample, ChristovState* state);
+void christov(float* MA3, int sample, ChristovState* state);
 
 
 #endif /* CHRISTOV_H_ */

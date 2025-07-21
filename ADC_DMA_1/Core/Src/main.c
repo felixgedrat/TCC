@@ -74,12 +74,10 @@ float diff_E[BUF_LEN_HALF];
 float diff_filtered_C[BUF_LEN_HALF - 2];
 float diff_filtered_E[BUF_LEN_HALF];
 
-int engzee_detection[320];
-int christov_detection[320];
+int engzee_detection[MAX_DETECTION_INIT];
+int christov_detection[MAX_DETECTION_INIT];
 //int len_engzee = 0;
-int len_christov = 0;
-int detections[500];
-int len_detections = 0;
+//int len_christov = 0;
 
 //float MM_engzee[5] = {0};
 float MM_christov[5] = {0};
@@ -118,8 +116,10 @@ int main(void)
 	// Initialize struct
 	EngzeeState engzee_state;
 	ChristovState christov_state;
+	FinalDetect final_detect;
 	memset(&engzee_state, 0, sizeof(EngzeeState)); // zera todos os campos
 	memset(&christov_state, 0, sizeof(ChristovState)); // zera todos os campos
+	memset(&final_detect, 0, sizeof(FinalDetect)); // zera todos os campos
 	float increment = 0.0016064257028112205;
 	for (int j = 0; j < ms1200 - ms200; ++j) {
 			engzee_state.M_slope[j] = 1.0 - j * increment;
@@ -216,7 +216,7 @@ int main(void)
 		 * parameters from past detection
 		 * @output christov detections
 		 */
-		christov(&buffer[0], diff_filtered_C, sample1, &christov_state);//fs, christov_detection, &len_christov, MM_christov, RR, &R_idx);
+		christov(diff_filtered_C, sample1, &christov_state);//fs, christov_detection, &len_christov, MM_christov, RR, &R_idx);
 
 		total_taps = 0;
 		sample1 += 2;
@@ -265,7 +265,7 @@ int main(void)
 		 * parameters from past detection
 		 * @output christov detections
 		 */
-		christov(&buffer[0], diff_filtered_C, sample1, &christov_state);
+		christov(diff_filtered_C, sample1, &christov_state);
 
 		total_taps = 0;
 		sample2 += 2;
@@ -281,7 +281,7 @@ int main(void)
 			 * @output Tradeoff detections
 			 */
 			HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);	// Apaga LED quando termina a coleta
-			tradeoff(engzee_detection, len_engzee, christov_detection, len_christov, detections, &len_detections);
+			tradeoff(&engzee_state,&christov_state, &final_detect);
 			break;
 		}
 		/* USER CODE END 3 */

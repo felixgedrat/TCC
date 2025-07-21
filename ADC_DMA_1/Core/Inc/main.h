@@ -43,6 +43,8 @@ extern "C" {
 #define M_SLOPE_SIZE 250
 #define MAX_QRS 320
 #define MAX_R_PEAKS 320
+#define MAX_DETECTION_INIT 320
+#define MAX_DETECTION_FINAL 500
 
 typedef struct {
     float M;
@@ -100,6 +102,11 @@ typedef struct {
 
     int len_detection;
 } ChristovState;
+
+typedef struct {
+	int detections[MAX_DETECTION_FINAL];
+	int len_detections;
+} FinalDetect;
 
 /* USER CODE END ET */
 

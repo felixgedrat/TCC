@@ -14,7 +14,7 @@
  * @input digital input, size of digital input
  * @output digital input filtered, total taps
  */
-void prefiltering(uint16_t *digitalized_ecg, uint16_t *total_taps, float *filtered_ecg) {
+void prefiltering(uint32_t *unfiltered_ecg, uint16_t *total_taps, float *filtered_ecg) {
 	uint16_t length = BUF_LEN_HALF;
 	float b_i = 1/7;
     float b1[] = { 0.2, 0.2, 0.2, 0.2, 0.2 };
@@ -28,7 +28,7 @@ void prefiltering(uint16_t *digitalized_ecg, uint16_t *total_taps, float *filter
 
     float MA1[length];
 
-    intfilter(b1, a, len_b1, len_a, digitalized_ecg, MA1, length);
+    intfilter(b1, a, len_b1, len_a, unfiltered_ecg, MA1, length);
 
     floatfilter(b2, a, len_b2, len_a, MA1, filtered_ecg, length);
 }
