@@ -28,7 +28,7 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
-
+#include "prefiltering.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -38,6 +38,7 @@ extern "C" {
 /* USER CODE BEGIN ET */
 #define BUF_LEN 2500
 #define BUF_LEN_HALF 1250
+#define PREFILTERING_HISTORY 7
 #define MAX_SECTION 25		// length of unfiltered section
 #define THI_LIST_SIZE 320
 #define M_SLOPE_SIZE 250
@@ -46,6 +47,16 @@ extern "C" {
 #define MAX_DETECTION_INIT 320
 #define MAX_DETECTION_FINAL 500
 
+// FILTER MACROS
+#define MAX_FILTER_ORDER 20 // maximum allowed filter order
+#define FILTER_B1_ORDER 4
+#define FILTER_B2_ORDER 6
+#define FILTER_B_NOISE_ORDER 9
+#define TOTAL_TAPS (FILTER_B1_ORDER+1+FILTER_B2_ORDER+1+FILTER_B_NOISE_ORDER+1)
+#define DIFFERENCE_CHRISTOV_STATE 2
+#define DIFFERENCE_ENGZEE_STATE 4
+
+// Struct for Engzee detection
 typedef struct {
     float M;
     float MM[5];
@@ -77,6 +88,7 @@ typedef struct {
     int len_engzee;
 } EngzeeState;
 
+// Struct for Christov detection
 typedef struct {
     float M;
     float MM[5];
@@ -103,10 +115,22 @@ typedef struct {
     int len_detection;
 } ChristovState;
 
+// Struct for global detection and parameters
 typedef struct {
+	uint32_t buffer[BUF_LEN];
+	uint32_t buffer_history[FILTER_B1_ORDER];
+
 	int detections[MAX_DETECTION_FINAL];
 	int len_detections;
-} FinalDetect;
+} GlobalState;
+
+// Struct for state signal processing
+typedef struct Signal {
+	float signal[BUF_LEN_HALF];
+	float state[MAX_FILTER_ORDER];
+	uint16_t len_signal;
+	uint16_t len_state;
+}Signal;
 
 /* USER CODE END ET */
 

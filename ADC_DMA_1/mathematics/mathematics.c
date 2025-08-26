@@ -12,7 +12,7 @@
 #include <math.h>
 
 /**
- * @brief Max value inside an array with size
+ * @brief Max value inside an array with size size
  * @input Array, size of array
  * @output Max value
  */

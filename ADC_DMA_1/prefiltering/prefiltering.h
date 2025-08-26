@@ -11,7 +11,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "filter.h"
+#include "main.h"
 
-void prefiltering(uint32_t *unfiltered_ecg, uint16_t *total_taps, float *filtered_ecg);
+#define FILTER_B1_ORDER 4
+#define FILTER_B2_ORDER 6
+
+struct Signal;
+
+void prefiltering(struct Signal *unfiltered_ecg, struct Signal *filtered_ecg);
 
 #endif /* PREFILTERING_H_ */

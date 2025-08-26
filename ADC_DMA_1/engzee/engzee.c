@@ -22,13 +22,27 @@
  * @input values ​​after filtering
  * @output differentiated values ​​- Engzee
  */
-void engzee_differentiation(float *input, float *diff_E) {
-	int length = BUF_LEN_HALF;
-	for (int i = 0; i < 4; i++){
-		diff_E[i] = 0.0;
+void engzee_differentiation(struct Signal *input, struct Signal *diff_E) {
+//	uint16_t length = BUF_LEN_HALF;
+// Create and fill array of input signal with state
+	uint16_t len_signal_state = input->len_signal + input->len_state;
+	uint16_t signal_with_state[len_signal_state];
+	uint16_t engzee_diff_start = DIFFERENCE_ENGZEE_STATE;
+	int i=0;
+	for (i=0;i<input->len_signal;i++){
+		signal_with_state[i] = input->state[i];
 	}
-	for (int i = 4; i < length; i++) {
-		diff_E[i] = input[i] - input[i - 4];
+	for (i=input->len_signal;i<len_signal_state;i++){
+		signal_with_state[i] = input->signal[i];
+	}
+	// Evaluate difference array according to engzee rules
+	int count = 0;
+	for (i=engzee_diff_start; i < len_signal_state; i++) {
+		diff_E->signal[count++] = input->signal[i] - input->signal[i - engzee_diff_start];
+	}
+	// Update input's state
+	for (i=0;i<input->len_state;i++){
+		input->state[i]=signal_with_state[len_signal_state-input->len_state+i];
 	}
 }
 
@@ -52,20 +66,21 @@ void engzee_lourenco(uint32_t* unfiltered_ecg, float* diff_E, int sample, Engzee
 	int length = BUF_LEN_HALF;
 	int first = *(state->peaks_index);
 	int start = (length * sample);
-
+	int local_i;
 //	float increment = 0.0016064257028112205;
 
 //	for (int j = 0; j < ms1200 - ms200; ++j) {
 //		M_slope[j] = 1.0 - j * increment;
 //	}
 
-	for (int i = start; i < (length * (sample + 1)); i++) {
+	for (local_i = 0; local_i < BUF_LEN_HALF); local_i++) {
+		state->global_i++;
 		//------------------------- AQUI EH PARA ENCONTRAR M -----------------------------
-		if (i < 5 * state->fs) {
-			state->M = 0.6 * max(diff_E, i + 1);
+		if (state->global_i < 5 * state->fs) {
+			state->M = 0.6 * max(diff_E, local_i + 1);
 			if (i < 5){
 				state->MM[i] = state->M;
-			} else if (i >= 5) {
+			} else if (local_i >= 5) {
 				for (int j = 0; j < 4; j++) {
 					state->MM[j] = state->MM[j + 1];
 				}

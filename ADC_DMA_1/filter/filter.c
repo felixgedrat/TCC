@@ -11,6 +11,7 @@
 #include <stdint.h>
 #include <math.h>
 #include "filter.h"
+#include <main.h>
 
 /**
  * @brief int filter
@@ -49,3 +50,58 @@ void floatfilter(float *b, uint16_t *a, uint16_t len_b, uint16_t len_a, float *x
         }
     }
 }
+
+/**
+ * @brief transform buffer of uint32_t values to float buffer
+ * @input uint32_t input array
+ * @output float output array
+ */
+void array_conversion(uint32_t* int_array, float* float_array, uint16_t buffer_len) {
+	for(uint16_t i=0; i<buffer_len; i++) {
+		float_array[i] = (float)int_array[i];
+	}
+}
+
+
+
+/**
+ * @brief implementation of float filter with state keeping
+ * @input
+ * @output
+ */
+
+//void statefloatfilter(uint32_t* x, uint16_t len_x,uint32_t* state,uint32_t* y, uint32_t* filter, uint16_t filter_order){
+void statefloatfilter(struct Signal* input_signal,struct Signal* output_signal, float* filter){
+	uint16_t len_state = input_signal->len_state;
+	uint16_t len_input_signal = input_signal->len_signal;
+	float x_state[len_input_signal+len_state];
+	float y_state[len_input_signal + 2*len_state];
+	int i;
+
+	for(i=0; i<len_state;i++){
+		x_state[i] = input_signal->state[i];
+	}
+	for(i=len_state; i<len_input_signal+len_state;i++){
+		x_state[i] = input_signal->signal[i-len_state];
+	}
+
+	for(i=0; i<len_input_signal+len_state ; i++){
+		for (int j = 0; j < len_state+1 && i - j >= 0; j++) {
+		            y_state[i] += filter[j] * x_state[i - j];
+		        }
+	}
+
+	for(i=0; i<len_state;i++) {
+		output_signal->signal[i]=y_state[i]+input_signal->state[i];
+	}
+
+	for(i=len_state; i<len_input_signal+len_state;i++){
+		output_signal->signal[i]=y_state[i];
+	}
+
+	for(i=len_state+len_input_signal;i<2*len_state+len_input_signal;i++){
+		input_signal->state[i-len_state-len_input_signal]=y_state[i];
+	}
+
+}
+

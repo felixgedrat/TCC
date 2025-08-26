@@ -20,11 +20,25 @@
  * @input values ​​after filtering, sample size
  * @output differentiated values ​​- Christov
  */
-void christov_differentiation(float *input, float *diff_C) {
-	int length = BUF_LEN_HALF;
+void christov_differentiation(struct Signal *input, struct Signal *diff_C) {
+	// Create and fill array of input signal with state
+	uint16_t len_signal_state = input->len_signal + input->len_state;
+	uint16_t signal_with_state[len_signal_state];
+	int i=0;
+	for (i=0;i<input->len_signal;i++){
+		signal_with_state[i] = input->state[i];
+	}
+	for (i=input->len_signal;i<len_signal_state;i++){
+		signal_with_state[i] = input->signal[i];
+	}
+	// Evaluate the difference array
 	int count = 0;
-	for (int i = 1; i < length - 1; i++) {
-		diff_C[count++] = fabs(input[i + 1] - input[i - 1]);
+	for (i = 1; i < len_signal_state - 1; i++) {
+		diff_C->signal[count++] = fabs(signal_with_state[i + 1] - signal_with_state[i - 1]);
+	}
+	// Update input's state
+	for (i=0;i<input->len_state;i++){
+		input->state[i]=signal_with_state[len_signal_state-input->len_state+i];
 	}
 }
 
@@ -33,17 +47,21 @@ void christov_differentiation(float *input, float *diff_C) {
  * @input differentiated values
  * @output filtered values
  */
-void christov_noise(float *diff_signal, float *diff_filtered_signal, uint16_t total_taps, int length) {
-	float b[10] = { 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1 };
-	uint16_t a[] = {1};
-	uint16_t len_b = sizeof(b) / sizeof(b[0]);
-	uint16_t len_a = sizeof(a) / sizeof(a[0]);
-	total_taps += len_b;
+//void christov_noise(float *diff_signal, float *diff_filtered_signal, uint16_t total_taps, int length) {
+void christov_noise(struct Signal *diff_signal, struct Signal *diff_filtered_signal) {
+	uint16_t filter_size = FILTER_B_NOISE_ORDER + 1;
+	float b[filter_size] = { 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1 };
+//	uint16_t a[] = {1};
+//	uint16_t len_b = sizeof(b) / sizeof(b[0]);
+//	uint16_t len_a = sizeof(a) / sizeof(a[0]);
+	uint16_t total_taps = (FILTER_B1_ORDER + 1) +
+						  (FILTER_B2_ORDER + 1) +
+						  (FILTER_B_NOISE_ORDER + 1);
 
-	floatfilter(b, a, len_b, len_a, diff_signal, diff_filtered_signal, length);
-
+//	floatfilter(b, a, len_b, len_a, diff_signal, diff_filtered_signal, length);
+	statefloatfilter(diff_signal,diff_filtered_signal,b);
 	for (int i = 0; i < total_taps; i++) {
-		diff_filtered_signal[i] = 0;
+		diff_filtered_signal->signal[i] = 0;
 	}
 }
 

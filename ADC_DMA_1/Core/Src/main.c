@@ -30,6 +30,7 @@
 #include "christov.h"
 #include "engzee.h"
 #include "tradeoff.h"
+#include "filter.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -67,7 +68,6 @@ uint8_t sample2 = 1;
 
 // Variaveis do prefiltering
 float filtered_ecg[BUF_LEN_HALF];
-uint16_t total_taps = 0;
 
 float diff_C[BUF_LEN_HALF - 2];
 float diff_E[BUF_LEN_HALF];
@@ -113,13 +113,40 @@ int main(void)
   /* USER CODE BEGIN 1 */
 	GPIO_PinState PB12bitstatus = GPIO_PIN_RESET;
 
-	// Initialize struct
+	/* INITIALIZE STRUCTS ---------------------------------------------------*/
+	// Structs for signals
+	Signal unfiltered_ecg;
+	Signal filtered_ecg_C;	// Two different Structs for filtered ECG section since their history is of different lengths
+	Signal filtered_ecg_E;
+	Signal diff_C;
+	Signal diff_E;
+	Signal diff_filtered_C;
+	Signal diff_filtered_E;
+
+	// Zeroes all fields
+	memset(&unfiltered_ecg,0,sizeof(unfiltered_ecg));
+	memset(&filtered_ecg_C, 0, sizeof(filtered_ecg_C));
+	memset(&filtered_ecg_E, 0, sizeof(filtered_ecg_E));
+	memset(&diff_C, 0, sizeof(diff_C));
+	memset(&diff_E, 0, sizeof(diff_E));
+	memset(&diff_filtered_C, 0, sizeof(diff_filtered_C));
+	memset(&diff_filtered_E, 0, sizeof(diff_filtered_E));
+
+	// Implements filter sizes
+	unfiltered_ecg.len_state = FILTER_B1_ORDER; // atualizado no meio do processamento
+	filtered_ecg_C.len_state = DIFFERENCE_CHRISTOV_STATE;
+	filtered_ecg_E.len_state = DIFFERENCE_ENGZEE_STATE;
+	diff_C.len_state = FILTER_B_NOISE_ORDER;
+	diff_E.len_state = FILTER_B_NOISE_ORDER;
+
+
+	// Structs for algorithm states
 	EngzeeState engzee_state;
 	ChristovState christov_state;
-	FinalDetect final_detect;
+	GlobalState global_state;
 	memset(&engzee_state, 0, sizeof(EngzeeState)); // zera todos os campos
 	memset(&christov_state, 0, sizeof(ChristovState)); // zera todos os campos
-	memset(&final_detect, 0, sizeof(FinalDetect)); // zera todos os campos
+	memset(&global_state, 0, sizeof(GlobalState)); // zera todos os campos
 	float increment = 0.0016064257028112205;
 	for (int j = 0; j < ms1200 - ms200; ++j) {
 			engzee_state.M_slope[j] = 1.0 - j * increment;
@@ -174,35 +201,41 @@ int main(void)
   /* USER CODE BEGIN WHILE */
 	while (1) {
 		/**
+		 * @brief Convert
+		 * @input Digital input, size of half buffer
+		 * @output Filtered input
+		 */
+		array_conversion(&buffer[0], unfiltered_ecg.signal, BUF_LEN_HALF);
+		/**
 		 * @brief Call pre-filtering
 		 * @input Digital input, size of half buffer
 		 * @output Filtered input
 		 */
-		prefiltering(&buffer[0], &total_taps, filtered_ecg);
+		prefiltering(&unfiltered_ecg, &filtered_ecg);
 		/**
 		 * @brief Christov Differentiation
 		 * @input input prefiltered, size of half buffer
 		 * @output signal differentiated - Christov
 		 */
-		christov_differentiation(filtered_ecg, diff_C);
+		christov_differentiation(&filtered_ecg_C, &diff_C);
 		/**
 		 * @brief Engzee Differentiation
 		 * @input input prefiltered, size of half buffer
 		 * @output signal differentiated - Engzee
 		 */
-		engzee_differentiation(filtered_ecg, diff_E);
+		engzee_differentiation(&filtered_ecg_E, &diff_E);
 		/**
 		 * @brief Call christov_noise to diff C
 		 * @input signal differentiated - Christov, size of half buffer, total taps
 		 * @output Christov filtered signal
 		 */
-		christov_noise(diff_C, diff_filtered_C, total_taps, BUF_LEN_HALF - 2);
+		christov_noise(&diff_C,&diff_filtered_C);
 		/**
 		 * @brief Call christov_noise to diff E
 		 * @input signal differentiated - Engzee, size of half buffer, total taps
 		 * @output Engzee filtered signal
 		 */
-		christov_noise(diff_E, diff_filtered_E, total_taps, BUF_LEN_HALF);
+		christov_noise(&diff_E, &diff_filtered_E);
 		/**
 		 * @brief Call engzee_lourenco to find engzee detections
 		 * @input Engzee filtered signal, digital input, len half buffer, relative sample, frequency sample,
@@ -218,40 +251,44 @@ int main(void)
 		 */
 		christov(diff_filtered_C, sample1, &christov_state);//fs, christov_detection, &len_christov, MM_christov, RR, &R_idx);
 
-		total_taps = 0;
 		sample1 += 2;
 		while(fill == 1);
-
+		/**
+		 * @brief Convert
+		 * @input Digital input, size of half buffer
+		 * @output Filtered input
+		 */
+		array_conversion(&buffer[BUF_LEN_HALF], unfiltered_ecg.signal, BUF_LEN_HALF);
 		/**
 		 * @brief Call pre-filtering
 		 * @input Digital input, size of half buffer
 		 * @output Filtered input
 		 */
-		prefiltering(&buffer[BUF_LEN_HALF], &total_taps, filtered_ecg);
+		prefiltering(&unfiltered_ecg, &filtered_ecg);
 		/**
 		 * @brief Christov Differentiation
 		 * @input input prefiltered, size of half buffer
 		 * @output signal differentiated - Christov
 		 */
-		christov_differentiation(filtered_ecg, diff_C);
+		christov_differentiation(&filtered_ecg_C, &diff_C);
 		/**
 		 * @brief Engzee Differentiation
 		 * @input input prefiltered, size of half buffer
 		 * @output signal differentiated - Engzee
 		 */
-		engzee_differentiation(filtered_ecg, diff_E);
+		engzee_differentiation(&filtered_ecg_E, &diff_E);
 		/**
 		 * @brief Call christov_noise to diff C
 		 * @input signal differentiated - Christov, size of half buffer, total taps
 		 * @output Christov filtered signal
 		 */
-		christov_noise(diff_C, diff_filtered_C, total_taps, BUF_LEN_HALF - 2);
+		christov_noise(&diff_C, &diff_filtered_C);
 		/**
 		 * @brief Call christov_noise to diff E
 		 * @input signal differentiated - Engzee, size of half buffer, total taps
 		 * @output Engzee filtered signal
 		 */
-		christov_noise(diff_E, diff_filtered_E, total_taps, BUF_LEN_HALF);
+		christov_noise(&diff_E, &diff_filtered_E);
 		/**
 		 * @brief Call engzee_lourenco to find engzee detections
 		 * @input Engzee filtered signal, digital input, len half buffer, relative sample, frequency sample,
@@ -267,7 +304,6 @@ int main(void)
 		 */
 		christov(diff_filtered_C, sample1, &christov_state);
 
-		total_taps = 0;
 		sample2 += 2;
 		if (sample2 == 25){
 			fill = 3;
@@ -281,7 +317,7 @@ int main(void)
 			 * @output Tradeoff detections
 			 */
 			HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);	// Apaga LED quando termina a coleta
-			tradeoff(&engzee_state,&christov_state, &final_detect);
+			tradeoff(&engzee_state,&christov_state, &global_state);
 			break;
 		}
 		/* USER CODE END 3 */

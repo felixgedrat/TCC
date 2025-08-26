@@ -28,8 +28,8 @@
 #define max_section_size 25
 /* USER CODE END PM */
 
-void christov_differentiation(float *input, float *diff_C);
-void christov_noise(float *diff_signal, float *diff_filtered_signal, uint16_t total_taps, int length);
+void christov_differentiation(struct Signal *input, struct Signal *diff_C);
+void christov_noise(struct Signal *diff_signal, struct Signal *diff_filtered_signal);
 void christov(float* MA3, int sample, ChristovState* state);
 
 
