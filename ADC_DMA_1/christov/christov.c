@@ -49,8 +49,8 @@ void christov_differentiation(struct Signal *input, struct Signal *diff_C) {
  */
 //void christov_noise(float *diff_signal, float *diff_filtered_signal, uint16_t total_taps, int length) {
 void christov_noise(struct Signal *diff_signal, struct Signal *diff_filtered_signal) {
-	uint16_t filter_size = FILTER_B_NOISE_ORDER + 1;
-	float b[filter_size] = { 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1 };
+	//uint16_t filter_size = FILTER_B_NOISE_ORDER + 1;
+	float b[] = { 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1 };
 //	uint16_t a[] = {1};
 //	uint16_t len_b = sizeof(b) / sizeof(b[0]);
 //	uint16_t len_a = sizeof(a) / sizeof(a[0]);

@@ -39,7 +39,7 @@ extern "C" {
 #define BUF_LEN 2500
 #define BUF_LEN_HALF 1250
 #define PREFILTERING_HISTORY 7
-#define MAX_SECTION 25		// length of unfiltered section
+#define MAX_SECTION 1000		// length of unfiltered section
 #define THI_LIST_SIZE 320
 #define M_SLOPE_SIZE 250
 #define MAX_QRS 320
@@ -60,15 +60,16 @@ extern "C" {
 typedef struct {
     float M;
     float MM[5];
+    uint16_t MM_size;
 //    int mm_count;
 
-    int QRS[MAX_QRS];
-    int qrs_index;
+    uint32_t QRS[MAX_QRS];
+    uint32_t qrs_index;
 
-    int thi_list[THI_LIST_SIZE];
-    int thi;
+//    int thi_list[THI_LIST_SIZE];
+    uint32_t thi;
 
-    int thf;
+    uint32_t thf;
     int counter;
 
     float newM5;
@@ -79,7 +80,7 @@ typedef struct {
 
     float M_slope[M_SLOPE_SIZE];  // para fs = 250Hz
 
-    int i_global;
+    uint32_t i_global;
     uint8_t fs;	// sampling frequency
 
     int r_peaks[MAX_R_PEAKS];

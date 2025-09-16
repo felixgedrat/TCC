@@ -25,7 +25,7 @@ void prefiltering(Signal *unfiltered_ecg, Signal *filtered_ecg) {
 //    uint16_t len_b2 = sizeof(b2) / sizeof(b2[0]);
 //    uint16_t len_a = sizeof(a) / sizeof(a[0]);
 
-    *total_taps += len_b1 + len_b2;
+//    *total_taps += len_b1 + len_b2;
 
     Signal MA1;
     MA1.len_signal = length;

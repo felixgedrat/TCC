@@ -242,7 +242,7 @@ int main(void)
 		 * parameters from past detection
 		 * @output engzee detections
 		 */
-		engzee_lourenco(&buffer[0], diff_filtered_E, sample1, &engzee_state); // fs, engzee_detection, &len_engzee, MM_engzee, thi_list);
+		engzee_lourenco(&unfiltered_ecg, &diff_filtered_E, sample1, &engzee_state); // fs, engzee_detection, &len_engzee, MM_engzee, thi_list);
 		/**
 		 * @brief Call christov to find christov detections
 		 * @input Christov filtered signal, digital input, len half buffer, relative sample, frequency sample,
@@ -295,7 +295,7 @@ int main(void)
 		 * parameters from past detection
 		 * @output engzee detections
 		 */
-		engzee_lourenco(&buffer[0], diff_filtered_E, sample1, &engzee_state); // fs, engzee_detection, &len_engzee, MM_engzee, thi_list);
+		engzee_lourenco(&unfiltered_ecg, &diff_filtered_E, sample1, &engzee_state);
 		/**
 		 * @brief Call christov to find christov detections
 		 * @input Christov filtered signal, digital input, len half buffer, relative sample, frequency sample,
