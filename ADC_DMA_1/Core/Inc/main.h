@@ -29,6 +29,7 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
 #include "prefiltering.h"
+#include "christov.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -38,6 +39,7 @@ extern "C" {
 /* USER CODE BEGIN ET */
 #define BUF_LEN 2500
 #define BUF_LEN_HALF 1250
+#define BUF_LEN_HALF_CHRISTOV (1250-2)
 #define PREFILTERING_HISTORY 7
 #define MAX_SECTION 1000		// length of unfiltered section
 #define THI_LIST_SIZE 320
@@ -83,8 +85,8 @@ typedef struct {
     uint32_t i_global;
     uint8_t fs;	// sampling frequency
 
-    int r_peaks[MAX_R_PEAKS];
-    int* peaks_index;
+    uint16_t r_peaks[MAX_R_PEAKS];
+    uint16_t peaks_index;
 
     int len_engzee;
 } EngzeeState;
@@ -93,12 +95,12 @@ typedef struct {
 typedef struct {
     float M;
     float MM[5];
-    int mm_count;
+    uint16_t MM_size;
 
     float newM5;
 
-    int QRS[MAX_QRS];
-    int qrs_index;
+    uint32_t QRS[MAX_QRS];
+    uint32_t qrs_index;
 
     float F;
 
@@ -113,7 +115,14 @@ typedef struct {
 
     int fs;
 
+    uint32_t i_global;
     int len_detection;
+
+    float M_section[MAX_SECTION];
+    uint32_t M_section_index;
+
+    float F_section[ms350];
+    uint16_t F_section_index;
 } ChristovState;
 
 // Struct for global detection and parameters

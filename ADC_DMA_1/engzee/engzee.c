@@ -65,29 +65,25 @@ void engzee_lourenco(Signal* unfiltered_ecg, Signal* diff_E, int sample, EngzeeS
 //	int maxi;
 	int length = BUF_LEN_HALF;
 //	int first = *(state->peaks_index);
-	int start = (length * sample);
+//	int start = (length * sample);
 	int local_i;
 	uint32_t last_QRS;
+	uint32_t maxi = 0;
 //	float increment = 0.0016064257028112205;
 
 //	for (int j = 0; j < ms1200 - ms200; ++j) {
 //		M_slope[j] = 1.0 - j * increment;
 //	}
 
+	last_QRS = state->QRS[state->qrs_index - 1];
 	for (local_i = 0; local_i < BUF_LEN_HALF; local_i++) {
-
-		last_QRS = state->QRS[state->qrs_index - 1];
+		// Updates last_QRS and adds unfiltered_section value
+		state->unfiltered_section[state->section_index++] = unfiltered_ecg->signal[local_i];
 		//------------------------- AQUI EH PARA ENCONTRAR M -----------------------------
 		if (state->i_global < 5 * state->fs) {
-			state->M = 0.6 * max(diff_E->signal, local_i + 1);
-			if (state->MM_size < 5){
-				state->MM[state->MM_size++] = state->M;
-			} else if (state->MM_size >= 5) {
-				for (int j = 0; j < 4; j++) {
-					state->MM[j] = state->MM[j + 1];
-				}
-				state->MM[4] = state->M;
-			}
+
+			state->M = 0.6 * max(diff_E->signal, local_i);
+			state->MM_size = append5(state->MM,state->MM_size,state->M);
 		}
 		//------------------------------ELIF 1-----------------------------------------------
 		else if (state->qrs_index && state->i_global < last_QRS + ms200) {
@@ -109,17 +105,12 @@ void engzee_lourenco(Signal* unfiltered_ecg, Signal* diff_E, int sample, EngzeeS
 		}
 		//------------------------------ELIF 2-----------------------------------------------
 		else if (state->newM5 != 0 && state->qrs_index && state->i_global == last_QRS + ms200) {
-			if (state->MM_size == 5){
-				for (int j = 0; j < 4; j++) {
-					state->MM[j] = state->MM[j + 1];														// note: criar funcao pop + criar funcao append (quais arrays vao ter malloc?)
-				}
-				state->MM[4] = state->newM5;
-			}
-			state->M = mean5(state->MM);
+			state->MM_size = append5(state->MM,state->MM_size,state->newM5);
+			state->M = mean(state->MM,state->MM_size);
 		}
 		//------------------------------ELIF 3-------------------------------------------
 		else if (state->qrs_index && state->i_global > last_QRS + ms200 && state->i_global < last_QRS + ms1200) {
-			state->M = (mean5(state->MM)) * state->M_slope[state->i_global - (state->QRS[state->qrs_index - 1] + ms200)];
+			state->M = (mean(state->MM,state->MM_size)) * state->M_slope[state->i_global - (last_QRS + ms200)];
 		}
 		//------------------------------ELIF 4-------------------------------------------
 		else if (state->qrs_index && state->i_global > last_QRS + ms1200) {
@@ -128,13 +119,25 @@ void engzee_lourenco(Signal* unfiltered_ecg, Signal* diff_E, int sample, EngzeeS
 		//------------------------------ DETECÇÃO ----------------------------------------
 		if (!(state->qrs_index) && diff_E->signal[local_i] > state->M) {
 			state->QRS[state->qrs_index++] = state->i_global;
+			last_QRS = state->i_global;
 //			state->thi_list[state->qrs_index] = state->i_global;														// note: thi_list pode ser definido dentro de engzee (n precisa de historico)
 			state->thi = state->i_global;
+			// Updates unfiltered section
+			state->unfiltered_section[0] = state->unfiltered_section[state->section_index-3];
+			state->unfiltered_section[1] = state->unfiltered_section[state->section_index-2];
+			state->unfiltered_section[2] = state->unfiltered_section[state->section_index-1];
+			state->section_index = 3;
+
 		} else if (state->qrs_index && state->i_global > last_QRS + ms200 && diff_E->signal[local_i] > state->M) {
 			state->QRS[state->qrs_index++] = state->i_global;
+			last_QRS = state->i_global;
 //			state->thi_list[state->qrs_index] = state->i_global;
 			state->thi = state->i_global;
 //			state->qrs_index++;
+			state->unfiltered_section[0] = state->unfiltered_section[state->section_index-3];
+			state->unfiltered_section[1] = state->unfiltered_section[state->section_index-2];
+			state->unfiltered_section[2] = state->unfiltered_section[state->section_index-1];
+			state->section_index = 3;
 		}
 		//------------------------------- THI e THF -------------------------------------
 		if (state->thi && state->i_global < state->thi + ms160) {
@@ -155,28 +158,26 @@ void engzee_lourenco(Signal* unfiltered_ecg, Signal* diff_E, int sample, EngzeeS
 		}
 		//-------------------------- ENCONTRAR OS PICOS DE FATO ---------------------------
 		if (state->counter > neg_threshold) {
-			for (int k = state->thi_list[state->qrs_index - 1] - 2; k < i; k++) {
-				state->unfiltered_section[state->section_index] = unfiltered_ecg->signal[k];		// note: me parece estranho
-				state->section_index++;
-			}
-			int maxi = indexMax(state->unfiltered_section, max_section_size);
+//			for (int k = state->thi_list[state->qrs_index - 1] - 2; k < i; k++) {
+//				state->unfiltered_section[state->section_index] = unfiltered_ecg->signal[k];		// note: me parece estranho
+//				state->section_index++;
+//			}
+			maxi = indexMax(state->unfiltered_section, max_section_size);
 
-			state->r_peaks[*state->peaks_index] = maxi + state->thi_list[state->qrs_index - 1] - neg_threshold;
-			(*state->peaks_index)++;
+			state->r_peaks[state->peaks_index++] = maxi + last_QRS - neg_threshold;
 			state->counter = 0;
 			state->thi = 0;
 			state->thf = 0;
-			state->section_index = 0;
-			memset(state->unfiltered_section, 0, max_section_size * sizeof(int));		// note: pq zera unfiltered_section?
 		}
 		state->i_global++;
 	}
-	if (first == 0){
-		for (int l = 0; l < (*state->peaks_index); l++) {
-			state->r_peaks[l] = state->r_peaks[l + 1];
-		}
-		first++;
-		(*state->peaks_index)--;
-	}
+//	if (first == 0){
+//		for (int l = 0; l < (*state->peaks_index); l++) {
+//			state->r_peaks[l] = state->r_peaks[l + 1];
+//		}
+//		first++;
+//		(*state->peaks_index)--;
+//	}
 
 }
+

@@ -251,7 +251,7 @@ int main(void)
 		 */
 		christov(diff_filtered_C, sample1, &christov_state);//fs, christov_detection, &len_christov, MM_christov, RR, &R_idx);
 
-		sample1 += 2;
+//		sample1 += 2;
 		while(fill == 1);
 		/**
 		 * @brief Convert
@@ -304,7 +304,7 @@ int main(void)
 		 */
 		christov(diff_filtered_C, sample1, &christov_state);
 
-		sample2 += 2;
+//		sample2 += 2;
 		if (sample2 == 25){
 			fill = 3;
 		}

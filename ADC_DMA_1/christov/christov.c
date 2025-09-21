@@ -71,7 +71,8 @@ void christov_noise(struct Signal *diff_signal, struct Signal *diff_filtered_sig
  * @input Digitized input, Christov differentiated array, sample buffer index, MM and RR
  * @output Spikes detected - Christov
  */
-void christov(float* MA3, int sample, ChristovState* state){ // int fs, int* QRS, int *len_detection, float *MM, float *RR, int *R_idx) {
+//void christov(float* MA3, int sample, ChristovState* state){ // int fs, int* QRS, int *len_detection, float *MM, float *RR, int *R_idx) {
+void christov(Signal* MA3, ChristovState* state){ // int fs, int* QRS, int *len_detection, float *MM, float *RR, int *R_idx) {
 	//int qrs_index = *len_detection;
 	// float M = 0;
 	// float newM5 = 0;
@@ -80,8 +81,10 @@ void christov(float* MA3, int sample, ChristovState* state){ // int fs, int* QRS
 //	int R = 0;
 //	int Rm = 0;
 //	int first = *len_detection;
-	int length = BUF_LEN_HALF - 2;
-	int start = (length * sample);
+	uint32_t local_i;
+//	uint32_t length = BUF_LEN_HALF - 2;
+//	int start = (length * sample);
+	uint32_t last_QRS;
 //	int idx = *R_idx;
 //	const float increment = 0.0016064257028112205;
 //
@@ -90,84 +93,61 @@ void christov(float* MA3, int sample, ChristovState* state){ // int fs, int* QRS
 //	}
 
 //	float* F_section = (float*)malloc(ms350 * sizeof(float));
-	float F_section[ms350+50];
-
-	for (int i = start; i < length * (sample + 1); i++) {
-
+//	float F_section[ms350];
+	float F_section_latest[ms50];
+	float F_section_earliest[ms50];
+	float max_latest;
+	float max_earliest;
+	last_QRS = state->QRS[state->qrs_index - 1];
+	for (int local_i = 0; local_i < BUF_LEN_HALF_CHRISTOV; local_i++) {
 		//////////////////////////////////////////////////
 		// M threshold
-		if ((i-start) < 5 * state->fs) {
-			state->M = 0.6 * max(MA3, i - start + 1);
-			if (i < 5){
-				state->MM[i] = state->M;
-			} else if (i >= 5){
-				for (int j = 0; j < 4; j++) {
-					state->MM[j] = state->MM[j + 1];
-				}
-				state->MM[4] = state->M;
+		if (state->i_global < 5 * state->fs) {
+			state->M = 0.6 * max(MA3->signal, local_i);
+			state->MM_size = append5(state->MM,state->MM_size,state->M);
+		}
+		else if (state->qrs_index && state->i_global < last_QRS + ms200) {
+			state->newM5 = 0.6*max(state->M_section,state->M_section_index);
+			if (state->newM5 > 1.5 * state->MM[state->MM_size-1]) {
+				state->newM5 = 1.1 * state->MM[state->MM_size-1];
 			}
 		}
-		else if (state->qrs_index && i < state->QRS[state->qrs_index - 1] + ms200) {
-			if (state->QRS[state->qrs_index - 1] < start){
-				state->newM5 = 0.6 * max2(MA3, 0, (i - start));
-			}
-			else{
-				state->newM5 = 0.6 * max2(MA3, state->QRS[state->qrs_index - 1], (i - start));
-			}
-			if (state->newM5 > 1.5 * state->MM[4]) {
-				state->newM5 = 1.1 * state->MM[4];
-			}
-		}
-		else if (state->qrs_index && i == state->QRS[state->qrs_index - 1] + ms200) {
+		else if (state->qrs_index && state->i_global == last_QRS + ms200) {
 			if (state->newM5 == 0) {
-				state->newM5 = state->MM[4];
+				state->newM5 = state->MM[state->MM_size-1];
 			}
-			for (int j = 0; j < 4; j++) {
-				state->MM[j] = state->MM[j + 1];
-			}
-			state->MM[4] = state->newM5;
-			state->M = mean5(state->MM);
+			state->MM_size = append5(state->MM,state->MM_size,state->newM5);
+			state->M = mean(state->MM,state->MM_size);
 		}
-		else if (state->qrs_index && i > state->QRS[state->qrs_index - 1] + ms200 && i < state->QRS[state->qrs_index - 1] + ms1200) {
-			state->M = (mean5(state->MM)) * state->M_slope[i - (state->QRS[state->qrs_index - 1] + ms200)];
+		else if (state->qrs_index && (state->i_global > last_QRS + ms200) && (state->i_global < last_QRS + ms1200)) {
+			state->M = mean(state->MM,state->MM_size) * state->M_slope[state->i_global - last_QRS + ms200];
 		}
-		else if (state->qrs_index && i > state->QRS[state->qrs_index - 1] + ms1200) {
-			state->M = 0.6 * (mean5(state->MM));
+		else if (state->qrs_index && last_QRS + ms1200) {
+			state->M = 0.6 * (mean(state->MM,state->MM_size));
 		}
 
+		if (state->qrs_index) {
+			state->M_section[state->M_section_index++] = MA3->signal[local_i];
+		}
 
 		//////////////////////////////////////////////////
 		// F threshold
-		if ((i - start) > ms350) {
+		if ((state->i_global) > ms350) {
 //			if (F_section == NULL) {
 //				exit(1);
 //			}
-			for (int j = 0; j < ms350; j++) {
-				F_section[j] = MA3[i - start - ms350 + j];
-			}
-			float max_latest = F_section[ms350 - ms50];
-			for (int j = ms350 - ms50 + 1; j < ms350; j++) {
-				if (F_section[j] > max_latest) {
-					max_latest = F_section[j];
-				}
-			}
-			float max_earliest = F_section[0];
-			for (int j = 1; j < ms50; j++) {
-				if (F_section[j] > max_earliest) {
-					max_earliest = F_section[j];
-				}
-			}
-
+			max_earliest = max2(state->F_section,0,ms50);
+			max_latest = max2(state->F_section,ms350-ms50,ms350);
 			state->F = state->F + ((max_latest - max_earliest) / 150.0);
 
 		}
 		//////////////////////////////////////////////////
 		// R threshold
 
-		if (state->qrs_index && i < state->QRS[state->qrs_index - 1] + (2.0 / 3.0 * state->Rm)) {
+		if (state->qrs_index && state->i_global < last_QRS + (int)(2.0 / 3.0 * state->Rm)) {
 			state->R = 0;
-		} else if (state->qrs_index && i > state->QRS[state->qrs_index - 1] + (2.0 / 3.0 * state->Rm) && i < state->QRS[state->qrs_index - 1] + state->Rm) {
-			state->R = (state->M - mean5(state->MM)) / 1.4;
+		} else if (state->qrs_index && state->i_global > last_QRS+ (int)(2.0 / 3.0 * state->Rm) && state->i_global < last_QRS + state->Rm) {
+			state->R = (state->M - mean(state->MM,state->MM_size)) / 1.4;
 		}
 
 		//////////////////////////////////////////////////
@@ -175,25 +155,23 @@ void christov(float* MA3, int sample, ChristovState* state){ // int fs, int* QRS
 
 		state->MFR = state->M + state->F + state->R;
 
-		if (!(state->qrs_index) && MA3[i - start] > state->MFR) {
-			state->QRS[state->qrs_index++] = i;
-		} else if (state->qrs_index && i > state->QRS[state->qrs_index - 1] + ms200 && MA3[i - start] > state->MFR) {
-			state->QRS[state->qrs_index++] = i;
-
+		if (!(state->qrs_index) && MA3->signal[local_i] > state->MFR) {
+			state->QRS[state->qrs_index++] = state->i_global;
+			last_QRS = state->i_global;
+			state->M_section_index = 0;
+		} else if (state->qrs_index && state->i_global > last_QRS + ms200 && MA3->signal[local_i] > state->MFR) {
+			state->QRS[state->qrs_index++] = state->i_global;
+			last_QRS = state->i_global;
+			state->M_section_index = 0;
 			if (state->qrs_index > 2) {
-				if (state->rr_index < 5){
-					state->RR[state->rr_index] = (state->QRS[state->qrs_index - 1] - state->QRS[state->qrs_index - 2]);
-					state->rr_index++;
-				}else{
-					for (int j = 0; j < 4; j++) {
-						state->RR[j] = state->RR[j + 1];
-					}
-					state->RR[4] = (state->QRS[state->qrs_index - 1] - state->QRS[state->qrs_index - 2]);
-				}
-				state->Rm = mean5(state->RR);
+				uint32_t RR_add = state->QRS[state->qrs_index-1] - state->QRS[state->qrs_index-2];
+				state->rr_index = append5(state->RR,state->rr_index,RR_add);
+				state->Rm = (int)mean5(state->RR);
 			}
 
 		}
+		state->F_section_index = append_ms350(state->F_section,state->F_section_index,MA3->signal[local_i]);
+
 	}
 
 //	free(F_section);

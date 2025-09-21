@@ -10,7 +10,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
-
+#include <mathematics.h>
+#include <stdint.h>
+#include <christov.h>
+#include <stdint.h>
 /**
  * @brief Max value inside an array with size size
  * @input Array, size of array
@@ -32,14 +35,11 @@ float max(float* arr, int size) {
  * @output Max value
  */
 float max2(float* arr, int start, int end) {
-	float max_val = arr[start];
-	start++;
-	while(start < end){
-		if (arr[start] > max_val) {
+	float max_val = arr[start++];
+	for (uint16_t i = start; i<end;i++)
+		if (arr[i] > max_val) {
 			max_val = arr[start];
 		}
-		start++;
-	}
 	return max_val;
 }
 
@@ -148,11 +148,52 @@ void findValuesInRange(int* arr, int size, int lower_bound, int upper_bound, int
 }
 
 /**
- * @brief Returns mean of array of 5 values
- * @input array
+ * @brief Returns mean of array of n values
+ * @input array, array_size
  * @output mean
  */
-float mean5(float* arr) {
-    float mean = (arr[0]+arr[1]+arr[2]+arr[3]+arr[4])/5;
+float mean(float* arr, uint16_t array_size) {
+    float mean = 0;
+    for (uint16_t i=0; i<array_size; i++) {
+    	mean = mean + arr[array_size];
+    }
+    mean = mean/array_size;
     return mean;
+}
+
+/**
+ * @brief Appends  value to array if size < 5. If size=5, discards first value
+ * (equivalent to array.append and array.pop(0))
+ * @input array,size,value
+ * @output void
+ */
+uint16_t append5(float* array, uint16_t array_size, float value){
+	if (array_size < 5){
+		array[array_size++]= value;
+	} else if (array_size == 5) {
+		for (int j = 0; j < 4; j++) {
+			array[j] = array[j + 1];
+		}
+		array[4] = value;
+	}
+	return array_size;
+}
+
+
+/**
+ * @brief Appends  value to array if size < 87. If size=87, discards first value
+ * (equivalent to array.append and array.pop(0))
+ * @input array,size,value
+ * @output void
+ */
+uint16_t append_ms350(float* array, uint16_t array_size, float value){
+	if (array_size < ms350){
+		array[array_size++]= value;
+	} else if (array_size == ms350) {
+		for (int j = 0; j < ms350 - 1; j++) {
+			array[j] = array[j + 1];
+		}
+		array[ms350-1] = value;
+	}
+	return array_size;
 }
