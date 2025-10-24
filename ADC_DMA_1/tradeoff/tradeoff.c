@@ -13,6 +13,7 @@
 #include "mathematics.h"
 #include "prefiltering.h"
 #include "main.h"
+#include "engzee.h"
 
 //#define MAX_LEN 320
 #define MAX_LEN 500

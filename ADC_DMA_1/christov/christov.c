@@ -72,7 +72,7 @@ void christov_noise(struct Signal *diff_signal, struct Signal *diff_filtered_sig
  * @output Spikes detected - Christov
  */
 //void christov(float* MA3, int sample, ChristovState* state){ // int fs, int* QRS, int *len_detection, float *MM, float *RR, int *R_idx) {
-void christov(Signal* MA3, ChristovState* state){ // int fs, int* QRS, int *len_detection, float *MM, float *RR, int *R_idx) {
+void christov(Signal* MA3,ChristovState* state){ // int fs, int* QRS, int *len_detection, float *MM, float *RR, int *R_idx) {
 	//int qrs_index = *len_detection;
 	// float M = 0;
 	// float newM5 = 0;
@@ -99,7 +99,7 @@ void christov(Signal* MA3, ChristovState* state){ // int fs, int* QRS, int *len_
 	float max_latest;
 	float max_earliest;
 	last_QRS = state->QRS[state->qrs_index - 1];
-	for (int local_i = 0; local_i < BUF_LEN_HALF_CHRISTOV; local_i++) {
+	for (local_i = 0; local_i < BUF_LEN_HALF_CHRISTOV; local_i++) {
 		//////////////////////////////////////////////////
 		// M threshold
 		if (state->i_global < 5 * state->fs) {
@@ -166,7 +166,7 @@ void christov(Signal* MA3, ChristovState* state){ // int fs, int* QRS, int *len_
 			if (state->qrs_index > 2) {
 				uint32_t RR_add = state->QRS[state->qrs_index-1] - state->QRS[state->qrs_index-2];
 				state->rr_index = append5(state->RR,state->rr_index,RR_add);
-				state->Rm = (int)mean5(state->RR);
+				state->Rm = mean(state->RR,state->rr_index);
 			}
 
 		}

@@ -63,7 +63,7 @@ void engzee_lourenco(Signal* unfiltered_ecg, Signal* diff_E, int sample, EngzeeS
 //	int unfiltered_section[25] = {0};
 //	int section_index = 0;
 //	int maxi;
-	int length = BUF_LEN_HALF;
+//	int length = BUF_LEN_HALF;
 //	int first = *(state->peaks_index);
 //	int start = (length * sample);
 	int local_i;
@@ -114,7 +114,7 @@ void engzee_lourenco(Signal* unfiltered_ecg, Signal* diff_E, int sample, EngzeeS
 		}
 		//------------------------------ELIF 4-------------------------------------------
 		else if (state->qrs_index && state->i_global > last_QRS + ms1200) {
-			state->M = 0.6 * (mean5(state->MM));
+			state->M = 0.6 * mean(state->MM,state->MM_size);
 		}
 		//------------------------------ DETECÇÃO ----------------------------------------
 		if (!(state->qrs_index) && diff_E->signal[local_i] > state->M) {

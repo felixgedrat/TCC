@@ -143,10 +143,10 @@ int main(void)
 	// Structs for algorithm states
 	EngzeeState engzee_state;
 	ChristovState christov_state;
-	GlobalState global_state;
+	FinalDetect final_detect;
 	memset(&engzee_state, 0, sizeof(EngzeeState)); // zera todos os campos
 	memset(&christov_state, 0, sizeof(ChristovState)); // zera todos os campos
-	memset(&global_state, 0, sizeof(GlobalState)); // zera todos os campos
+	memset(&final_detect, 0, sizeof(FinalDetect)); // zera todos os campos
 	float increment = 0.0016064257028112205;
 	for (int j = 0; j < ms1200 - ms200; ++j) {
 			engzee_state.M_slope[j] = 1.0 - j * increment;
@@ -249,7 +249,7 @@ int main(void)
 		 * parameters from past detection
 		 * @output christov detections
 		 */
-		christov(diff_filtered_C, sample1, &christov_state);//fs, christov_detection, &len_christov, MM_christov, RR, &R_idx);
+		christov(&diff_filtered_C, &christov_state);//fs, christov_detection, &len_christov, MM_christov, RR, &R_idx);
 
 //		sample1 += 2;
 		while(fill == 1);
@@ -302,7 +302,7 @@ int main(void)
 		 * parameters from past detection
 		 * @output christov detections
 		 */
-		christov(diff_filtered_C, sample1, &christov_state);
+		christov(&diff_filtered_C, &christov_state);
 
 //		sample2 += 2;
 		if (sample2 == 25){
@@ -317,7 +317,7 @@ int main(void)
 			 * @output Tradeoff detections
 			 */
 			HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);	// Apaga LED quando termina a coleta
-			tradeoff(&engzee_state,&christov_state, &global_state);
+			tradeoff(&engzee_state,&christov_state, &final_detect);
 			break;
 		}
 		/* USER CODE END 3 */
