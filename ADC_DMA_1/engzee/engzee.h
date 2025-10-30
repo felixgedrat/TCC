@@ -62,6 +62,6 @@ typedef struct {
 } EngzeeState;
 
 void engzee_differentiation(struct Signal *input, struct Signal *diff_E);
-void engzee_lourenco(Signal* unfiltered_ecg, Signal* diff_E, int sample, EngzeeState* state);
+void engzee_lourenco(Signal* unfiltered_ecg, Signal* MA3, EngzeeState* state);
 
 #endif /* ENGZEE_H_ */

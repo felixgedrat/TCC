@@ -51,30 +51,7 @@
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-//void hard_fault_handler_c(unsigned int * hardfault_args)
-//{
-//    volatile unsigned int stacked_r0;
-//    volatile unsigned int stacked_r1;
-//    volatile unsigned int stacked_r2;
-//    volatile unsigned int stacked_r3;
-//    volatile unsigned int stacked_r12;
-//    volatile unsigned int stacked_lr;
-//    volatile unsigned int stacked_pc;
-//    volatile unsigned int stacked_psr;
-//
-//    stacked_r0 = ((unsigned long) hardfault_args[0]);
-//    stacked_r1 = ((unsigned long) hardfault_args[1]);
-//    stacked_r2 = ((unsigned long) hardfault_args[2]);
-//    stacked_r3 = ((unsigned long) hardfault_args[3]);
-//
-//    stacked_r12 = ((unsigned long) hardfault_args[4]);
-//    stacked_lr = ((unsigned long) hardfault_args[5]);
-//    stacked_pc = ((unsigned long) hardfault_args[6]);
-//    stacked_psr = ((unsigned long) hardfault_args[7]);
-//
-//    // A partir daqui, você pode inspecionar essas variáveis para depurar a falha.
-//    while (1);
-//}
+
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
@@ -107,14 +84,6 @@ void NMI_Handler(void)
 void HardFault_Handler(void)
 {
   /* USER CODE BEGIN HardFault_IRQn 0 */
-//	__asm volatile
-//	(
-//			"TST lr, #4 \n"
-//			"ITE EQ \n"
-//			"MRSEQ r0, MSP \n"
-//			"MRSNE r0, PSP \n"
-//			"B hard_fault_handler_c \n"
-//	);
   /* USER CODE END HardFault_IRQn 0 */
   while (1)
   {

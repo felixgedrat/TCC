@@ -23,16 +23,16 @@
 void christov_differentiation(struct Signal *input, struct Signal *diff_C) {
 	// Create and fill array of input signal with state
 	uint16_t len_signal_state = input->len_signal + input->len_state;
-	uint16_t signal_with_state[len_signal_state];
-	int i=0;
-	for (i=0;i<input->len_signal;i++){
+	float signal_with_state[len_signal_state];
+	uint16_t i=0;
+	for (i=0;i<input->len_state;i++){
 		signal_with_state[i] = input->state[i];
 	}
-	for (i=input->len_signal;i<len_signal_state;i++){
-		signal_with_state[i] = input->signal[i];
+	for (i=input->len_state;i<len_signal_state;i++){
+		signal_with_state[i] = input->signal[i-input->len_state];
 	}
 	// Evaluate the difference array
-	int count = 0;
+	uint16_t count = 0;
 	for (i = 1; i < len_signal_state - 1; i++) {
 		diff_C->signal[count++] = fabs(signal_with_state[i + 1] - signal_with_state[i - 1]);
 	}
@@ -72,34 +72,22 @@ void christov_noise(struct Signal *diff_signal, struct Signal *diff_filtered_sig
  * @output Spikes detected - Christov
  */
 //void christov(float* MA3, int sample, ChristovState* state){ // int fs, int* QRS, int *len_detection, float *MM, float *RR, int *R_idx) {
-void christov(Signal* MA3,ChristovState* state){ // int fs, int* QRS, int *len_detection, float *MM, float *RR, int *R_idx) {
-	//int qrs_index = *len_detection;
-	// float M = 0;
-	// float newM5 = 0;
-//	float M_slope[250];
-//	float F = 0;
-//	int R = 0;
-//	int Rm = 0;
-//	int first = *len_detection;
+void christov(Signal* MA3, ChristovState* state){
 	uint32_t local_i;
-//	uint32_t length = BUF_LEN_HALF - 2;
-//	int start = (length * sample);
 	uint32_t last_QRS;
-//	int idx = *R_idx;
-//	const float increment = 0.0016064257028112205;
-//
-//	for (int j = 0; j < ms1200 - ms200; ++j) {
-//		M_slope[j] = 1.0 - j * increment;
-//	}
-
-//	float* F_section = (float*)malloc(ms350 * sizeof(float));
-//	float F_section[ms350];
 	float F_section_latest[ms50];
 	float F_section_earliest[ms50];
 	float max_latest;
 	float max_earliest;
 	last_QRS = state->QRS[state->qrs_index - 1];
-	for (local_i = 0; local_i < BUF_LEN_HALF_CHRISTOV; local_i++) {
+
+	// --------- Zero out filter delay --------- //
+	if (state->i_global == 0) {
+		memset(&(MA3->signal[0]),0,TOTAL_TAPS);
+	}
+
+	// ------------ Detection loop ------------ //
+	for (local_i = 0; local_i < BUF_LEN_HALF; local_i++) {
 		//////////////////////////////////////////////////
 		// M threshold
 		if (state->i_global < 5 * state->fs) {
@@ -171,7 +159,7 @@ void christov(Signal* MA3,ChristovState* state){ // int fs, int* QRS, int *len_d
 
 		}
 		state->F_section_index = append_ms350(state->F_section,state->F_section_index,MA3->signal[local_i]);
-
+		state->i_global++;
 	}
 
 //	free(F_section);

@@ -35,7 +35,7 @@
 
 
 // Struct for state signal processing
-typedef struct Signal {
+typedef struct Signal{
 	float signal[BUF_LEN_HALF];
 	float state[MAX_FILTER_ORDER];
 	uint16_t len_signal;

@@ -51,41 +51,16 @@
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
 DMA_HandleTypeDef hdma_adc1;
-
 TIM_HandleTypeDef htim2;
 
 /* USER CODE BEGIN PV */
 uint32_t buffer[BUF_LEN];
 
-uint8_t fill = 0; // 0: buffer vazio; 1: primeira metade cheia; 2: segunda metade cheia
-
-// flags de quantidade de leitura
-uint8_t sample1 = 0;
-uint8_t sample2 = 1;
-
-// frequency sample
-//uint8_t fs = 250;
-
-// Variaveis do prefiltering
-float filtered_ecg[BUF_LEN_HALF];
-
-float diff_C[BUF_LEN_HALF - 2];
-float diff_E[BUF_LEN_HALF];
-float diff_filtered_C[BUF_LEN_HALF - 2];
-float diff_filtered_E[BUF_LEN_HALF];
-
-int engzee_detection[MAX_DETECTION_INIT];
-int christov_detection[MAX_DETECTION_INIT];
-//int len_engzee = 0;
-//int len_christov = 0;
-
-//float MM_engzee[5] = {0};
-float MM_christov[5] = {0};
-float RR[5] = {0};
-int R_idx = 0;
-//int thi_list[320];
-
-
+// Flags for processing circular buffer
+uint8_t fill = 0; //1: processing 1st half; 2: processing 2nd half
+bool firstHalfFull;
+bool secondHalfFull;
+bool finishedSampling;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -112,11 +87,22 @@ int main(void)
 
   /* USER CODE BEGIN 1 */
 	GPIO_PinState PB12bitstatus = GPIO_PIN_RESET;
+	// Filter coefficients
+	float b1_filter[5] = { 1/5, 1/5, 1/5, 1/5, 1/5};
+	float b2_filter[7] = { 1/7, 1/7, 1/7, 1/7, 1/7, 1/7, 1/7};
+	float b_noise[10]  = {1/10, 1/10, 1/10, 1/10, 1/10, 1/10, 1/10, 1/10, 1/10, 1/10};
 
-	/* INITIALIZE STRUCTS ---------------------------------------------------*/
+	// Set flags
+	firstHalfFull = false;
+	secondHalfFull = false;
+	fill = 0;
+	finishedSampling = false;
+
+	/* ---------------------------INITIALIZE STRUCTS ----------------------------------------*/
 	// Structs for signals
 	Signal unfiltered_ecg;
-	Signal filtered_ecg_C;	// Two different Structs for filtered ECG section since their history is of different lengths
+	Signal filtered_ecg_mid;
+	Signal filtered_ecg_C;	// Two different Structs for filtered ECG section since their state is of different lengths
 	Signal filtered_ecg_E;
 	Signal diff_C;
 	Signal diff_E;
@@ -125,6 +111,7 @@ int main(void)
 
 	// Zeroes all fields
 	memset(&unfiltered_ecg,0,sizeof(unfiltered_ecg));
+	memset(&filtered_ecg_mid,0,sizeof(filtered_ecg_mid));
 	memset(&filtered_ecg_C, 0, sizeof(filtered_ecg_C));
 	memset(&filtered_ecg_E, 0, sizeof(filtered_ecg_E));
 	memset(&diff_C, 0, sizeof(diff_C));
@@ -132,13 +119,21 @@ int main(void)
 	memset(&diff_filtered_C, 0, sizeof(diff_filtered_C));
 	memset(&diff_filtered_E, 0, sizeof(diff_filtered_E));
 
-	// Implements filter sizes
-	unfiltered_ecg.len_state = FILTER_B1_ORDER; // atualizado no meio do processamento
-	filtered_ecg_C.len_state = DIFFERENCE_CHRISTOV_STATE;
-	filtered_ecg_E.len_state = DIFFERENCE_ENGZEE_STATE;
-	diff_C.len_state = FILTER_B_NOISE_ORDER;
-	diff_E.len_state = FILTER_B_NOISE_ORDER;
+	// Implements filter state and signal sizes
+	unfiltered_ecg.len_state = 		FILTER_B1_ORDER;
+	filtered_ecg_mid.len_state = 	FILTER_B2_ORDER;
+	filtered_ecg_C.len_state = 		DIFFERENCE_CHRISTOV_STATE;
+	filtered_ecg_E.len_state = 		DIFFERENCE_ENGZEE_STATE;
+	diff_C.len_state = 				FILTER_B_NOISE_ORDER;
+	diff_E.len_state = 				FILTER_B_NOISE_ORDER;
 
+	unfiltered_ecg.len_signal = BUF_LEN_HALF;
+	filtered_ecg_C.len_signal = BUF_LEN_HALF;
+	filtered_ecg_E.len_signal = BUF_LEN_HALF;
+	diff_C.len_signal = 		BUF_LEN_HALF;
+	diff_E.len_signal = 		BUF_LEN_HALF;
+	diff_filtered_C.len_signal= BUF_LEN_HALF;
+	diff_filtered_E.len_signal= BUF_LEN_HALF;
 
 	// Structs for algorithm states
 	EngzeeState engzee_state;
@@ -194,137 +189,73 @@ int main(void)
 		}
 	HAL_ADC_Start_DMA(&hadc1, buffer, BUF_LEN);
 	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);	// Acende LED quando comeca a coleta
-	while(fill == 0);
+	while(firstHalfFull == false);
+	fill = 1;
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-	while (1) {
-		/**
-		 * @brief Convert
-		 * @input Digital input, size of half buffer
-		 * @output Filtered input
-		 */
-		array_conversion(&buffer[0], unfiltered_ecg.signal, BUF_LEN_HALF);
-		/**
-		 * @brief Call pre-filtering
-		 * @input Digital input, size of half buffer
-		 * @output Filtered input
-		 */
-		prefiltering(&unfiltered_ecg, &filtered_ecg);
-		/**
-		 * @brief Christov Differentiation
-		 * @input input prefiltered, size of half buffer
-		 * @output signal differentiated - Christov
-		 */
-		christov_differentiation(&filtered_ecg_C, &diff_C);
-		/**
-		 * @brief Engzee Differentiation
-		 * @input input prefiltered, size of half buffer
-		 * @output signal differentiated - Engzee
-		 */
-		engzee_differentiation(&filtered_ecg_E, &diff_E);
-		/**
-		 * @brief Call christov_noise to diff C
-		 * @input signal differentiated - Christov, size of half buffer, total taps
-		 * @output Christov filtered signal
-		 */
-		christov_noise(&diff_C,&diff_filtered_C);
-		/**
-		 * @brief Call christov_noise to diff E
-		 * @input signal differentiated - Engzee, size of half buffer, total taps
-		 * @output Engzee filtered signal
-		 */
-		christov_noise(&diff_E, &diff_filtered_E);
-		/**
-		 * @brief Call engzee_lourenco to find engzee detections
-		 * @input Engzee filtered signal, digital input, len half buffer, relative sample, frequency sample,
-		 * parameters from past detection
-		 * @output engzee detections
-		 */
-		engzee_lourenco(&unfiltered_ecg, &diff_filtered_E, sample1, &engzee_state); // fs, engzee_detection, &len_engzee, MM_engzee, thi_list);
-		/**
-		 * @brief Call christov to find christov detections
-		 * @input Christov filtered signal, digital input, len half buffer, relative sample, frequency sample,
-		 * parameters from past detection
-		 * @output christov detections
-		 */
-		christov(&diff_filtered_C, &christov_state);//fs, christov_detection, &len_christov, MM_christov, RR, &R_idx);
 
-//		sample1 += 2;
-		while(fill == 1);
-		/**
-		 * @brief Convert
-		 * @input Digital input, size of half buffer
-		 * @output Filtered input
-		 */
-		array_conversion(&buffer[BUF_LEN_HALF], unfiltered_ecg.signal, BUF_LEN_HALF);
-		/**
-		 * @brief Call pre-filtering
-		 * @input Digital input, size of half buffer
-		 * @output Filtered input
-		 */
-		prefiltering(&unfiltered_ecg, &filtered_ecg);
-		/**
-		 * @brief Christov Differentiation
-		 * @input input prefiltered, size of half buffer
-		 * @output signal differentiated - Christov
-		 */
+	while (finishedSampling == false) {
+		if (fill == 1) {
+			firstHalfFull = false;
+			// Convert first half of array to float type
+			array_conversion(&buffer[0], unfiltered_ecg.signal, BUF_LEN_HALF);
+		} else if (fill == 2) {
+			secondHalfFull = false;
+			// Convert second half of array to float type
+			array_conversion(&buffer[BUF_LEN_HALF], unfiltered_ecg.signal, BUF_LEN_HALF);
+		}
+
+		// ------------------------------------------------------------------//
+		// --------------------------FILTERING-------------------------------//
+		// Filter using b1 filter
+		statefloatfilter(&unfiltered_ecg, &filtered_ecg_mid, b1_filter);
+
+		// Filter using b2 filter for Christov
+		statefloatfilter(&filtered_ecg_mid, &filtered_ecg_C, b2_filter);
+
+		// Filter using b2 filter for Engzee
+		statefloatfilter(&filtered_ecg_mid, &filtered_ecg_E, b2_filter);
+
+		// ------------------------------------------------------------------//
+		// -----------------------DIFFERENTIATION----------------------------//
+		// Differentiate according to Christov
 		christov_differentiation(&filtered_ecg_C, &diff_C);
-		/**
-		 * @brief Engzee Differentiation
-		 * @input input prefiltered, size of half buffer
-		 * @output signal differentiated - Engzee
-		 */
+
+		// Differentiate according to Engzee
 		engzee_differentiation(&filtered_ecg_E, &diff_E);
-		/**
-		 * @brief Call christov_noise to diff C
-		 * @input signal differentiated - Christov, size of half buffer, total taps
-		 * @output Christov filtered signal
-		 */
-		christov_noise(&diff_C, &diff_filtered_C);
-		/**
-		 * @brief Call christov_noise to diff E
-		 * @input signal differentiated - Engzee, size of half buffer, total taps
-		 * @output Engzee filtered signal
-		 */
-		christov_noise(&diff_E, &diff_filtered_E);
-		/**
-		 * @brief Call engzee_lourenco to find engzee detections
-		 * @input Engzee filtered signal, digital input, len half buffer, relative sample, frequency sample,
-		 * parameters from past detection
-		 * @output engzee detections
-		 */
-		engzee_lourenco(&unfiltered_ecg, &diff_filtered_E, sample1, &engzee_state);
-		/**
-		 * @brief Call christov to find christov detections
-		 * @input Christov filtered signal, digital input, len half buffer, relative sample, frequency sample,
-		 * parameters from past detection
-		 * @output christov detections
-		 */
+
+		// ------------------------------------------------------------------//
+		// -----------------------NOISE FILTERING----------------------------//
+		// Filters noise of both differentiated signals
+		statefloatfilter(&diff_C, &diff_filtered_C, b_noise);
+		statefloatfilter(&diff_E, &diff_filtered_E, b_noise);
+
+		// ------------------------------------------------------------------//
+		// -----------------------BEAT DETECTION-----------------------------//
+		engzee_lourenco(&unfiltered_ecg, &diff_filtered_E, &engzee_state);
 		christov(&diff_filtered_C, &christov_state);
 
-//		sample2 += 2;
-		if (sample2 == 25){
-			fill = 3;
-		}
-		while(fill == 2);
+		// Combines detections from both algorithms
+		tradeoff(&engzee_state,&christov_state, &final_detect);
 
-		if(fill == 3){
-			/**
-			 * @brief Call tradeoff
-			 * @input Christov and Engzee detections and sizes
-			 * @output Tradeoff detections
-			 */
-			HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);	// Apaga LED quando termina a coleta
-			tradeoff(&engzee_state,&christov_state, &final_detect);
-			break;
+		while(firstHalfFull || secondHalfFull || finishedSampling == false){
+			if ((fill == 1 && firstHalfFull) ||
+				(fill == 2 && secondHalfFull)) {
+				error
+			} else if (fill == 1 && secondHalfFull) {
+				fill = 2;
+			} else if (fill == 2 && firstHalfFull) {
+				fill = 1;
+			}
 		}
 		/* USER CODE END 3 */
 	}
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);	// Turns LED off when done sampling
 }
   /* USER CODE END 3 */
 
@@ -532,11 +463,11 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc) {
-	fill = 1;
+	firstHalfFull = true;
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
-	fill = 2;
+	secondHalfFull = true;
 }
 
 int _write(int file, char *ptr, int len)

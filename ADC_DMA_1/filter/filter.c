@@ -71,23 +71,23 @@ void array_conversion(uint32_t* int_array, float* float_array, uint16_t buffer_l
  */
 
 //void statefloatfilter(uint32_t* x, uint16_t len_x,uint32_t* state,uint32_t* y, uint32_t* filter, uint16_t filter_order){
-void statefloatfilter(struct Signal* input_signal,struct Signal* output_signal, float* filter){
+void statefloatfilter(struct Signal* input_signal, struct Signal* output_signal, float* filter){
 	uint16_t len_state = input_signal->len_state;
 	uint16_t len_input_signal = input_signal->len_signal;
-	float x_state[len_input_signal+len_state];
-	float y_state[len_input_signal + 2*len_state];
+//	float x_state[len_input_signal];
+	float y_state[len_input_signal + len_state];
 	int i;
 
-	for(i=0; i<len_state;i++){
-		x_state[i] = input_signal->state[i];
-	}
-	for(i=len_state; i<len_input_signal+len_state;i++){
-		x_state[i] = input_signal->signal[i-len_state];
-	}
+//	for(i=0; i<len_state;i++){
+//		x_state[i] = input_signal->state[i];
+//	}
+//	for(i=len_state; i<len_input_signal+len_state;i++){
+//		x_state[i] = input_signal->signal[i-len_state];
+//	}
 
 	for(i=0; i<len_input_signal+len_state ; i++){
 		for (int j = 0; j < len_state+1 && i - j >= 0; j++) {
-		            y_state[i] += filter[j] * x_state[i - j];
+		            y_state[i] += filter[j] * input_signal->signal[i - j];
 		        }
 	}
 
@@ -95,12 +95,12 @@ void statefloatfilter(struct Signal* input_signal,struct Signal* output_signal, 
 		output_signal->signal[i]=y_state[i]+input_signal->state[i];
 	}
 
-	for(i=len_state; i<len_input_signal+len_state;i++){
+	for(i=len_state; i<len_input_signal;i++){
 		output_signal->signal[i]=y_state[i];
 	}
 
-	for(i=len_state+len_input_signal;i<2*len_state+len_input_signal;i++){
-		input_signal->state[i-len_state-len_input_signal]=y_state[i];
+	for(i=len_input_signal;i<len_state+len_input_signal;i++){
+		input_signal->state[i-len_input_signal]=y_state[i];
 	}
 
 }

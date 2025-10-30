@@ -95,7 +95,7 @@ void intersect(int* arr1, int len1, int* arr2, int len2, int* result_len, int* r
  * @input array, size of array and lower bound
  * @output index of value that met the criteria
  */
-int lowerBound(int* arr, int size, int lower_bound) {
+int lowerBound(uint32_t* arr, int size, int lower_bound) {
     int low = 0;
     int high = size - 1;
 
@@ -115,7 +115,7 @@ int lowerBound(int* arr, int size, int lower_bound) {
  * @input array, size of array and upper bound
  * @output index of value that met the criteria
  */
-int upperBound(int* arr, int size, int upper_bound) {
+int upperBound(uint32_t* arr, int size, int upper_bound) {
     int low = 0;
     int high = size - 1;
 
@@ -135,16 +135,12 @@ int upperBound(int* arr, int size, int upper_bound) {
  * @input array, bounds and result pointer and array len
  * @output void
  */
-void findValuesInRange(int* arr, int size, int lower_bound, int upper_bound, int* result_len, int* result) {
+void findValuesInRange(uint32_t* arr, uint32_t size, int lower_bound, int upper_bound, int* result_len, int* result) {
     int start = lowerBound(arr, size, lower_bound);
     int end = upperBound(arr, size, upper_bound);
-
-    printf("Valores entre %d e %d:\n", lower_bound, upper_bound);
     for (int i = start; i <= end; i++) {
-        printf("%d ", arr[i]);
         result[(*result_len)++] = arr[i];
     }
-    printf("\n");
 }
 
 /**

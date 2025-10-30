@@ -15,6 +15,7 @@
 #include <math.h>
 #include <main.h>
 
+struct Signal;
 void intfilter(float* b, uint16_t* a, uint16_t len_b, uint16_t len_a, uint32_t* x, float* y, uint16_t len_x);
 void floatfilter(float *b, uint16_t *a, uint16_t len_b, uint16_t len_a, float *x, float *y, uint16_t len_x);
 void statefloatfilter(struct Signal* input_signal,struct Signal* output_signal, float* filter);

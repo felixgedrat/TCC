@@ -39,7 +39,7 @@ extern "C" {
 /* USER CODE BEGIN ET */
 #define BUF_LEN 2500
 //#define BUF_LEN_HALF 1250
-#define BUF_LEN_HALF_CHRISTOV (1250-2)
+//#define BUF_LEN_HALF_CHRISTOV (1250-2)
 #define PREFILTERING_HISTORY 7
 //#define MAX_SECTION 1000		// length of unfiltered section
 #define THI_LIST_SIZE 320
@@ -64,8 +64,8 @@ extern "C" {
 
 // Struct for global detection and parameters
 typedef struct {
-	uint32_t buffer[BUF_LEN];
-	uint32_t buffer_history[FILTER_B1_ORDER];
+//	uint32_t buffer[BUF_LEN];
+//	uint32_t buffer_history[FILTER_B1_ORDER];
 
 	int detections[MAX_DETECTION_FINAL];
 	int len_detections;
