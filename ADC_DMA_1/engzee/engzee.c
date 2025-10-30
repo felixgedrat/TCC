@@ -50,29 +50,11 @@ void engzee_differentiation(struct Signal *input, struct Signal *diff_E) {
  * @input Digitized input, Engzee differentiated array, sample buffer index, MM and Thi_list
  * @output Spikes detected - Engzee
  */
-void engzee_lourenco(Signal* unfiltered_ecg, Signal* MA3, EngzeeState* state){ //int *r_peaks, int *peaks_index, float *MM, int *thi_list) {	// note: mudar nome de MA3 pq esse eh diferenciado e filtrado
-//	float M_slope[250];
-//	state->M = 0;
-//	int QRS[max_qrs_size];																			// note: abarcar em struct
-//	int qrs_index = 0;
-//	int thi = 0;
-//	int counter = 0;
-//	int thf = 0;
-//	float newM5 = 0;
-//	int unfiltered_section[25] = {0};
-//	int section_index = 0;
-//	int maxi;
-//	int length = BUF_LEN_HALF;
-//	int first = *(state->peaks_index);
-//	int start = (length * sample);
+void engzee_lourenco(Signal* unfiltered_ecg, Signal* MA3, EngzeeState* state){
 	int local_i;
 	uint32_t last_QRS;
 	uint32_t maxi = 0;
-//	float increment = 0.0016064257028112205;
 
-//	for (int j = 0; j < ms1200 - ms200; ++j) {
-//		M_slope[j] = 1.0 - j * increment;
-//	}
 	// --------- Zero out filter delay --------- //
 	if (state->i_global == 0) {
 		memset(&(MA3->signal[0]),0,TOTAL_TAPS);
