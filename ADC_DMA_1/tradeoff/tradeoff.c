@@ -30,12 +30,13 @@ void tradeoff(EngzeeState* engzee_state, ChristovState* christov_state, FinalDet
     // static int search_interval[MAX_SEARCH_INTERVAL];
 
     final_detect->len_detections = engzee_state->len_engzee;
-    for (int i = 0; i < engzee_state->len_engzee; i++) {
+    uint16_t i;
+    for (i = 0; i < engzee_state->len_engzee; i++) {
         final_detect->detections[i] = engzee_state->r_peaks[i];
     }
 
     if (final_detect->len_detections > 2*DELTA) {
-    	for (int i = 0; i < engzee_state->len_engzee - 1; i++) {
+    	for (i = 0; i < engzee_state->len_engzee - 1; i++) {
 
     	        int a = final_detect->detections[i] + DELTA;         // determines upper and lower bounds for searching missed
     	        int b = final_detect->detections[i + 1] - DELTA;     //      detections in Christov

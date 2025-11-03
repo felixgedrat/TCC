@@ -61,6 +61,10 @@ uint8_t fill = 0; //1: processing 1st half; 2: processing 2nd half
 bool firstHalfFull;
 bool secondHalfFull;
 bool finishedSampling;
+uint32_t t_1;
+uint32_t t_2;
+uint32_t t_3;
+uint32_t t_4;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -71,6 +75,7 @@ static void MX_ADC1_Init(void);
 static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
 int _write(int file, char *ptr, int len);
+void notEnoughTimeError(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -84,13 +89,16 @@ int _write(int file, char *ptr, int len);
   */
 int main(void)
 {
-
+	// Ativa o DWT Cycle Counter (Necessário para MCUs Cortex-M3/M4/M7)
+	CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk; // Habilita o rastreamento
+	DWT->CYCCNT = 0; // Zera o contador
+	DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk; // Habilita o contador
   /* USER CODE BEGIN 1 */
 	GPIO_PinState PB12bitstatus = GPIO_PIN_RESET;
 	// Filter coefficients
-	float b1_filter[5] = { 1/5, 1/5, 1/5, 1/5, 1/5};
-	float b2_filter[7] = { 1/7, 1/7, 1/7, 1/7, 1/7, 1/7, 1/7};
-	float b_noise[10]  = {1/10, 1/10, 1/10, 1/10, 1/10, 1/10, 1/10, 1/10, 1/10, 1/10};
+	float b1_filter[5] = { FLOAT_1div5, FLOAT_1div5, FLOAT_1div5, FLOAT_1div5, FLOAT_1div5 };
+	float b2_filter[7] = { FLOAT_1div7, FLOAT_1div7, FLOAT_1div7, FLOAT_1div7, FLOAT_1div7, FLOAT_1div7, FLOAT_1div7 };
+	float b_noise[10]  = { FLOAT_1div10, FLOAT_1div10, FLOAT_1div10, FLOAT_1div10, FLOAT_1div10, FLOAT_1div10, FLOAT_1div10, FLOAT_1div10, FLOAT_1div10, FLOAT_1div10 };
 
 	// Set flags
 	firstHalfFull = false;
@@ -195,8 +203,8 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-
 	while (finishedSampling == false) {
+		t_3 = DWT->CYCCNT;
 		if (fill == 1) {
 			firstHalfFull = false;
 			// Convert first half of array to float type
@@ -206,7 +214,6 @@ int main(void)
 			// Convert second half of array to float type
 			array_conversion(&buffer[BUF_LEN_HALF], unfiltered_ecg.signal, BUF_LEN_HALF);
 		}
-
 		// ------------------------------------------------------------------//
 		// --------------------------FILTERING-------------------------------//
 		// Filter using b1 filter
@@ -217,7 +224,6 @@ int main(void)
 
 		// Filter using b2 filter for Engzee
 		statefloatfilter(&filtered_ecg_mid, &filtered_ecg_E, b2_filter);
-
 		// ------------------------------------------------------------------//
 		// -----------------------DIFFERENTIATION----------------------------//
 		// Differentiate according to Christov
@@ -225,13 +231,11 @@ int main(void)
 
 		// Differentiate according to Engzee
 		engzee_differentiation(&filtered_ecg_E, &diff_E);
-
 		// ------------------------------------------------------------------//
 		// -----------------------NOISE FILTERING----------------------------//
 		// Filters noise of both differentiated signals
 		statefloatfilter(&diff_C, &diff_filtered_C, b_noise);
 		statefloatfilter(&diff_E, &diff_filtered_E, b_noise);
-
 		// ------------------------------------------------------------------//
 		// -----------------------BEAT DETECTION-----------------------------//
 		engzee_lourenco(&unfiltered_ecg, &diff_filtered_E, &engzee_state);
@@ -239,17 +243,19 @@ int main(void)
 
 		// Combines detections from both algorithms
 		tradeoff(&engzee_state,&christov_state, &final_detect);
+		t_4 = DWT->CYCCNT;
+		while((firstHalfFull || secondHalfFull || finishedSampling) == false);
 
-		while(firstHalfFull || secondHalfFull || finishedSampling == false){
-			if ((fill == 1 && firstHalfFull) ||
-				(fill == 2 && secondHalfFull)) {
-				error
-			} else if (fill == 1 && secondHalfFull) {
-				fill = 2;
-			} else if (fill == 2 && firstHalfFull) {
-				fill = 1;
-			}
+		if ((fill == 1 && firstHalfFull) ||
+			(fill == 2 && secondHalfFull)) {
+			notEnoughTimeError();
+		} else if (fill == 1 && secondHalfFull) {
+			fill = 2;
+		} else if (fill == 2 && firstHalfFull) {
+			fill = 1;
 		}
+
+		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
 		/* USER CODE END 3 */
 	}
     /* USER CODE END WHILE */
@@ -463,10 +469,12 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc) {
+	t_1 = DWT->CYCCNT;
 	firstHalfFull = true;
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
+	t_2 = DWT->CYCCNT;
 	secondHalfFull = true;
 }
 
@@ -495,6 +503,17 @@ void Error_Handler(void)
 	{
 	}
   /* USER CODE END Error_Handler_Debug */
+}
+
+/**
+  * @brief  This function is executed in case the circular buffer is starting to be overwritten but processing is not yet over.
+  * @retval None
+  */
+void notEnoughTimeError(void){
+	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);	// Turns LED off when done sampling
+	HAL_Delay(200);
+	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);	// Turns LED off when done sampling
+	HAL_Delay(200);
 }
 
 #ifdef  USE_FULL_ASSERT

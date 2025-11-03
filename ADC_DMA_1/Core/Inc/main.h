@@ -26,58 +26,22 @@
 extern "C" {
 #endif
 
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
 #include "prefiltering.h"
 #include "christov.h"
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
-
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
-#define BUF_LEN 2500
-//#define BUF_LEN_HALF 1250
-//#define BUF_LEN_HALF_CHRISTOV (1250-2)
-#define PREFILTERING_HISTORY 7
-//#define MAX_SECTION 1000		// length of unfiltered section
-#define THI_LIST_SIZE 320
-#define M_SLOPE_SIZE 250
-//#define MAX_QRS 320
-#define MAX_R_PEAKS 320
-#define MAX_DETECTION_INIT 320
 #define MAX_DETECTION_FINAL 500
-
-// FILTER MACROS
-//#define MAX_FILTER_ORDER 20 // maximum allowed filter order
-#define FILTER_B1_ORDER 4
-#define FILTER_B2_ORDER 6
-#define FILTER_B_NOISE_ORDER 9
-#define TOTAL_TAPS (FILTER_B1_ORDER+1+FILTER_B2_ORDER+1+FILTER_B_NOISE_ORDER+1)
-#define DIFFERENCE_CHRISTOV_STATE 2
-#define DIFFERENCE_ENGZEE_STATE 4
-
-
-
-
-
 // Struct for global detection and parameters
 typedef struct {
-//	uint32_t buffer[BUF_LEN];
-//	uint32_t buffer_history[FILTER_B1_ORDER];
-
-	int detections[MAX_DETECTION_FINAL];
-	int len_detections;
+	uint32_t detections[MAX_DETECTION_FINAL];
+	uint16_t len_detections;
 } FinalDetect;
-
-//// Struct for state signal processing
-//typedef struct Signal {
-//	float signal[BUF_LEN_HALF];
-//	float state[MAX_FILTER_ORDER];
-//	uint16_t len_signal;
-//	uint16_t len_state;
-//}Signal;
 
 /* USER CODE END ET */
 
@@ -98,6 +62,7 @@ void Error_Handler(void);
 
 /* USER CODE END EFP */
 
+/* USER CODE BEGIN Private defines */
 /* Private defines -----------------------------------------------------------*/
 #define LED_Pin GPIO_PIN_13
 #define LED_GPIO_Port GPIOC
@@ -106,7 +71,27 @@ void Error_Handler(void);
 #define SYNTH_IN_Pin GPIO_PIN_12
 #define SYNTH_IN_GPIO_Port GPIOB
 
-/* USER CODE BEGIN Private defines */
+#define BUF_LEN 2500
+#define PREFILTERING_HISTORY 7
+//#define MAX_SECTION 1000		// length of unfiltered section
+#define THI_LIST_SIZE 320
+#define M_SLOPE_SIZE 250
+//#define MAX_QRS 320
+#define MAX_R_PEAKS 320
+#define MAX_DETECTION_INIT 320
+
+
+// FILTER MACROS
+//#define MAX_FILTER_ORDER 20 // maximum allowed filter order
+#define FLOAT_1div5  (1.0f / 5.0f)
+#define FLOAT_1div7  (1.0f / 7.0f)
+#define FLOAT_1div10 (1.0f / 10.0f)
+#define FILTER_B1_ORDER 4
+#define FILTER_B2_ORDER 6
+#define FILTER_B_NOISE_ORDER 9
+#define TOTAL_TAPS (FILTER_B1_ORDER+1+FILTER_B2_ORDER+1+FILTER_B_NOISE_ORDER+1)
+#define DIFFERENCE_CHRISTOV_STATE 2
+#define DIFFERENCE_ENGZEE_STATE 4
 
 /* USER CODE END Private defines */
 

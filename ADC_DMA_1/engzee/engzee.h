@@ -47,7 +47,7 @@ typedef struct {
     float newM5;
 
     int unfiltered_section[MAX_SECTION];
-    int section_index;
+    uint16_t section_index;
     int maxi;
 
     float M_slope[M_SLOPE_SIZE];  // para fs = 250Hz
@@ -55,7 +55,7 @@ typedef struct {
     uint32_t i_global;
     uint8_t fs;	// sampling frequency
 
-    uint16_t r_peaks[MAX_R_PEAKS];
+    uint32_t r_peaks[MAX_R_PEAKS];
     uint16_t peaks_index;
 
     int len_engzee;

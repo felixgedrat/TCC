@@ -54,6 +54,7 @@ void engzee_lourenco(Signal* unfiltered_ecg, Signal* MA3, EngzeeState* state){
 	int local_i;
 	uint32_t last_QRS;
 	uint32_t maxi = 0;
+	uint32_t five_seconds = (uint32_t)5*state->fs;
 
 	// --------- Zero out filter delay --------- //
 	if (state->i_global == 0) {
@@ -66,7 +67,7 @@ void engzee_lourenco(Signal* unfiltered_ecg, Signal* MA3, EngzeeState* state){
 		// Updates last_QRS and adds unfiltered_section value
 		state->unfiltered_section[state->section_index++] = unfiltered_ecg->signal[local_i];
 		//------------------------- AQUI EH PARA ENCONTRAR M -----------------------------
-		if (state->i_global < 5 * state->fs) {
+		if (state->i_global < five_seconds) {
 
 			state->M = 0.6 * max(MA3->signal, local_i);
 			state->MM_size = append5(state->MM,state->MM_size,state->M);
