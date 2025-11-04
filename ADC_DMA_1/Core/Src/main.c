@@ -65,6 +65,10 @@ uint32_t t_1;
 uint32_t t_2;
 uint32_t t_3;
 uint32_t t_4;
+uint32_t buffer_1250_0;
+uint32_t buffer_1250_1;
+uint32_t buffer_1251_0;
+uint32_t buffer_1251_1;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -205,6 +209,8 @@ int main(void)
   /* USER CODE BEGIN WHILE */
 	while (finishedSampling == false) {
 		t_3 = DWT->CYCCNT;
+		buffer_1250_0 = buffer[1249];
+		buffer_1251_0 = buffer[1250];
 		if (fill == 1) {
 			firstHalfFull = false;
 			// Convert first half of array to float type
@@ -245,7 +251,8 @@ int main(void)
 		tradeoff(&engzee_state,&christov_state, &final_detect);
 		t_4 = DWT->CYCCNT;
 		while((firstHalfFull || secondHalfFull || finishedSampling) == false);
-
+		buffer_1250_1 = buffer[1249];
+		buffer_1251_1 = buffer[1250];
 		if ((fill == 1 && firstHalfFull) ||
 			(fill == 2 && secondHalfFull)) {
 			notEnoughTimeError();

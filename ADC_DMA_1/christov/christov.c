@@ -42,44 +42,18 @@ void christov_differentiation(struct Signal *input, struct Signal *diff_C) {
 	}
 }
 
-/**
- * @brief Call lfilter to diff_signals
- * @input differentiated values
- * @output filtered values
- */
-//void christov_noise(float *diff_signal, float *diff_filtered_signal, uint16_t total_taps, int length) {
-void christov_noise(struct Signal *diff_signal, struct Signal *diff_filtered_signal) {
-	//uint16_t filter_size = FILTER_B_NOISE_ORDER + 1;
-	float b[] = { 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1 };
-//	uint16_t a[] = {1};
-//	uint16_t len_b = sizeof(b) / sizeof(b[0]);
-//	uint16_t len_a = sizeof(a) / sizeof(a[0]);
-	uint16_t total_taps = (FILTER_B1_ORDER + 1) +
-						  (FILTER_B2_ORDER + 1) +
-						  (FILTER_B_NOISE_ORDER + 1);
-
-//	floatfilter(b, a, len_b, len_a, diff_signal, diff_filtered_signal, length);
-	statefloatfilter(diff_signal,diff_filtered_signal,b);
-	for (int i = 0; i < total_taps; i++) {
-		diff_filtered_signal->signal[i] = 0;
-	}
-}
-
 
 /**
  * @brief Christov Detection
- * @input Digitized input, Christov differentiated array, sample buffer index, MM and RR
+ * @input Filtered input and current state of detection
  * @output Spikes detected - Christov
  */
-//void christov(float* MA3, int sample, ChristovState* state){ // int fs, int* QRS, int *len_detection, float *MM, float *RR, int *R_idx) {
 void christov(Signal* MA3, ChristovState* state){
 	uint32_t local_i;
 	uint32_t last_QRS;
-	float F_section_latest[ms50];
-	float F_section_earliest[ms50];
 	float max_latest;
 	float max_earliest;
-	last_QRS = state->QRS[state->qrs_index - 1];
+	last_QRS = state->QRS[state->len_QRS - 1];
 
 	// --------- Zero out filter delay --------- //
 	if (state->i_global == 0) {
@@ -94,47 +68,45 @@ void christov(Signal* MA3, ChristovState* state){
 			state->M = 0.6 * max(MA3->signal, local_i);
 			state->MM_size = append5(state->MM,state->MM_size,state->M);
 		}
-		else if (state->qrs_index && state->i_global < last_QRS + ms200) {
-			state->newM5 = 0.6*max(state->M_section,state->M_section_index);
+		else if (state->len_QRS && state->i_global < last_QRS + ms200) {
+			state->newM5 = 0.6*max(state->M_section,state->len_M_section);
 			if (state->newM5 > 1.5 * state->MM[state->MM_size-1]) {
 				state->newM5 = 1.1 * state->MM[state->MM_size-1];
 			}
 		}
-		else if (state->qrs_index && state->i_global == last_QRS + ms200) {
+		else if (state->len_QRS && state->i_global == last_QRS + ms200) {
 			if (state->newM5 == 0) {
 				state->newM5 = state->MM[state->MM_size-1];
 			}
 			state->MM_size = append5(state->MM,state->MM_size,state->newM5);
 			state->M = mean(state->MM,state->MM_size);
 		}
-		else if (state->qrs_index && (state->i_global > last_QRS + ms200) && (state->i_global < last_QRS + ms1200)) {
+		else if (state->len_QRS && (state->i_global > last_QRS + ms200) && (state->i_global < last_QRS + ms1200)) {
 			state->M = mean(state->MM,state->MM_size) * state->M_slope[state->i_global - last_QRS + ms200];
 		}
-		else if (state->qrs_index && last_QRS + ms1200) {
+		else if (state->len_QRS && last_QRS + ms1200) {
 			state->M = 0.6 * (mean(state->MM,state->MM_size));
 		}
 
-		if (state->qrs_index) {
-			state->M_section[state->M_section_index++] = MA3->signal[local_i];
+		if (state->len_QRS) {
+			state->M_section[state->len_M_section++] = MA3->signal[local_i];
 		}
 
 		//////////////////////////////////////////////////
 		// F threshold
-		if ((state->i_global) > ms350) {
-//			if (F_section == NULL) {
-//				exit(1);
-//			}
-			max_earliest = max2(state->F_section,0,ms50);
-			max_latest = max2(state->F_section,ms350-ms50,ms350);
-			state->F = state->F + ((max_latest - max_earliest) / 150.0);
 
+		if ((state->i_global) > ms350) {
+			max_earliest = maxStartEnd(state->F_section,0,ms50);
+			max_latest = maxStartEnd(state->F_section,ms350-ms50,ms350);
+			state->F = state->F + ((max_latest - max_earliest) / 150.0);
 		}
+
 		//////////////////////////////////////////////////
 		// R threshold
 
-		if (state->qrs_index && state->i_global < last_QRS + (int)(2.0 / 3.0 * state->Rm)) {
+		if (state->len_QRS && state->i_global < last_QRS + (int)(2.0 / 3.0 * ((float)state->Rm))) {
 			state->R = 0;
-		} else if (state->qrs_index && state->i_global > last_QRS+ (int)(2.0 / 3.0 * state->Rm) && state->i_global < last_QRS + state->Rm) {
+		} else if (state->len_QRS && state->i_global > last_QRS+ (int)(2.0 / 3.0 * ((float)state->Rm)) && state->i_global < last_QRS + state->Rm) {
 			state->R = (state->M - mean(state->MM,state->MM_size)) / 1.4;
 		}
 
@@ -143,33 +115,35 @@ void christov(Signal* MA3, ChristovState* state){
 
 		state->MFR = state->M + state->F + state->R;
 
-		if (!(state->qrs_index) && MA3->signal[local_i] > state->MFR) {
-			state->QRS[state->qrs_index++] = state->i_global;
+		//////////////////////////////////////////////////
+		// Detection
+
+		// First detection
+		if (!(state->len_QRS) && MA3->signal[local_i] > state->MFR) {
+			state->QRS[state->len_QRS++] = state->i_global;
 			last_QRS = state->i_global;
-			state->M_section_index = 0;
-		} else if (state->qrs_index && state->i_global > last_QRS + ms200 && MA3->signal[local_i] > state->MFR) {
-			state->QRS[state->qrs_index++] = state->i_global;
-			last_QRS = state->i_global;
-			state->M_section_index = 0;
-			if (state->qrs_index > 2) {
-				uint32_t RR_add = state->QRS[state->qrs_index-1] - state->QRS[state->qrs_index-2];
+			state->len_M_section = 0;
+
+		// Other detections
+		} else if (state->len_QRS && state->i_global > last_QRS + ms200 && MA3->signal[local_i] > state->MFR) {
+			state->QRS[state->len_QRS++] = state->i_global;	// Stores detection
+			last_QRS = state->i_global;						// updates last QRS
+			state->len_M_section = 0;						// zeroes out M section
+			if (state->len_QRS > 2) {
+				uint32_t RR_add = state->QRS[state->len_QRS-1] - state->QRS[state->len_QRS-2];
 				state->rr_index = append5(state->RR,state->rr_index,RR_add);
-				state->Rm = mean(state->RR,state->rr_index);
+				state->Rm = (uint32_t)mean(state->RR,state->rr_index);
 			}
 
 		}
-		state->F_section_index = append_ms350(state->F_section,state->F_section_index,MA3->signal[local_i]);
+		state->len_F_section = append_ms350(state->F_section,state->len_F_section,MA3->signal[local_i]);
 		state->i_global++;
 	}
 
-//	free(F_section);
-
 	// the lines below do the functionality of a pop(0) operation in Python
-	for (int l = state->len_detection; l < state->qrs_index; l++) {
+	for (uint32_t l = 0; l < state->len_QRS; l++) {
 		state->QRS[l] = state->QRS[l + 1];
 	}
-	state->qrs_index--;
+	state->len_QRS--;
 
-//	*len_detection = qrs_index;
-//	*R_idx = idx;
 }

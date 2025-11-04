@@ -34,7 +34,7 @@ float max(float* arr, int size) {
  * @input Array, start and end limits
  * @output Max value
  */
-float max2(float* arr, int start, int end) {
+float maxStartEnd(float* arr, int start, int end){
 	float max_val = arr[start++];
 	for (uint16_t i = start; i<end;i++)
 		if (arr[i] > max_val) {
@@ -48,7 +48,7 @@ float max2(float* arr, int start, int end) {
  * @input Array, size of array
  * @output Max Index value
  */
-int indexMax(int* arr, int size){
+int indexMax(float* arr, uint16_t size){
 	int max_val = arr[0];
 	int index = 0;
 	for (int i = 1; i < size; i++) {

@@ -75,7 +75,6 @@ void Error_Handler(void);
 #define PREFILTERING_HISTORY 7
 //#define MAX_SECTION 1000		// length of unfiltered section
 #define THI_LIST_SIZE 320
-#define M_SLOPE_SIZE 250
 //#define MAX_QRS 320
 #define MAX_R_PEAKS 320
 #define MAX_DETECTION_INIT 320

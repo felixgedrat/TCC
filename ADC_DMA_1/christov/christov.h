@@ -25,58 +25,62 @@
 #define ms200 50
 #define ms350 87
 #define ms1200 300
+#define ms4000 1000
 #define max_qrs_size 320
 #define max_section_size 25
 #define BUF_LEN_HALF 1250
 #define MAX_FILTER_ORDER 20 // maximum allowed filter order
-#define MAX_SECTION 1000		// length of unfiltered section
 #define MAX_QRS 320
+#define M_SLOPE_SIZE 250
 /* USER CODE END PM */
 
 
+/* private types -------------------------------------------------------------*/
 // Struct for state signal processing
 typedef struct Signal{
-	float signal[BUF_LEN_HALF];
-	float state[MAX_FILTER_ORDER];
-	uint16_t len_signal;
-	uint16_t len_state;
+	float signal[BUF_LEN_HALF];		// signal
+	float state[MAX_FILTER_ORDER];	// current state of signal
+	uint16_t len_signal;			// length of signal
+	uint16_t len_state;				// length of state
 }Signal;
 
 // Struct for Christov detection
-typedef struct {
-    float M;
-    float MM[5];
-    uint16_t MM_size;
+typedef struct ChristovState{
+	// M-threshold parameters
+    float M;						// current M parameter
+    float MM[5];					// M buffer, max size 5
+    uint16_t MM_size;				// size of M buffer
+    float newM5;					// new value to be added to buffer
+    float M_section[ms4000];		// stores signal values since last detection
+    uint32_t len_M_section;			// size of M section
+    float M_slope[M_SLOPE_SIZE];	// slope used for M parameter
 
-    float newM5;
+    // F-threshold
+    float F;						// F threshold
+    float F_section[ms350];			// buffer which stores last 350 ms of signal
+    uint16_t len_F_section;			// length of F section
 
-    uint32_t QRS[MAX_QRS];
-    uint32_t qrs_index;
+    // R-threshold parameters
+    float R;						// Current R parameter
+    float RR[5];					// R buffer, max size 5
+    uint8_t rr_index;				// size of R buffer
+    uint32_t Rm;					// mean integer of RR buffer
 
-    float F;
-
-    float R;
-    float RR[5];
-    int rr_index;
-    float Rm;
-
+    // MFR threshold
     float MFR;
 
-    float M_slope[250];
+    // Constants
+    int fs;							// sampling frequency
 
-    int fs;
+    // Detections
+    uint32_t QRS[MAX_QRS];			// detection array
+    uint32_t len_QRS;				// length of detection array
 
+    // Absolute instant
     uint32_t i_global;
-    int len_detection;
-
-    float M_section[MAX_SECTION];
-    uint32_t M_section_index;
-
-    float F_section[ms350];
-    uint16_t F_section_index;
 } ChristovState;
-//struct Signal;
-//struct ChristovState;
+
+/* PFP -------------------------------------------------------------*/
 void christov_differentiation( Signal *input,  Signal *diff_C);
 void christov_noise( Signal *diff_signal,  Signal *diff_filtered_signal);
 void christov(Signal* MA3,  ChristovState* state);

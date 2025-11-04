@@ -46,6 +46,19 @@ void engzee_differentiation(struct Signal *input, struct Signal *diff_E) {
 }
 
 /**
+ * @brief Updates unfiltered section array in Engzee
+ * @input Digitized input, Engzee differentiated array, sample buffer index, MM and Thi_list
+ * @output Spikes detected - Engzee
+ */
+void update_unfiltered_section(float* unfiltered_section, uint16_t* len_unfiltered_section) {
+	unfiltered_section[0] = unfiltered_section[(*len_unfiltered_section)-3];
+	unfiltered_section[1] = unfiltered_section[(*len_unfiltered_section)-2];
+	unfiltered_section[2] = unfiltered_section[(*len_unfiltered_section)-1];
+	*len_unfiltered_section = 3;
+}
+
+
+/**
  * @brief Engzee Detection
  * @input Digitized input, Engzee differentiated array, sample buffer index, MM and Thi_list
  * @output Spikes detected - Engzee
@@ -62,10 +75,10 @@ void engzee_lourenco(Signal* unfiltered_ecg, Signal* MA3, EngzeeState* state){
 	}
 
 	// ------------ Detection loop ------------ //
-	last_QRS = state->QRS[state->qrs_index - 1];
+	last_QRS = state->QRS[state->len_QRS - 1];
 	for (local_i = 0; local_i < BUF_LEN_HALF; local_i++) {
 		// Updates last_QRS and adds unfiltered_section value
-		state->unfiltered_section[state->section_index++] = unfiltered_ecg->signal[local_i];
+		state->unfiltered_section[state->len_unfiltered_section++] = unfiltered_ecg->signal[local_i];
 		//------------------------- AQUI EH PARA ENCONTRAR M -----------------------------
 		if (state->i_global < five_seconds) {
 
@@ -73,97 +86,78 @@ void engzee_lourenco(Signal* unfiltered_ecg, Signal* MA3, EngzeeState* state){
 			state->MM_size = append5(state->MM,state->MM_size,state->M);
 		}
 		//------------------------------ELIF 1-----------------------------------------------
-		else if (state->qrs_index && state->i_global < last_QRS + ms200) {
-			//if (state->QRS[state->qrs_index - 1] < start){
-			state->newM5 = 0.6 * max2(MA3->signal, 0, local_i);		// note: aqui deveriamos detectar da ultima amostra em QRS ate o valor atual, descontinuidade?
-//			}
-//			else{												// note: entender o uso desse i-start no acesso ao array
-//				if ((i - start) - state->QRS[state->qrs_index - 1]){
-//					state->newM5 = 0;
-//					}
-//				else{
-//					state->newM5 = 0.6 * max2(MA3, state->QRS[state->qrs_index - 1], (i - start));
-//
-//				}
-//			}
+		else if (state->len_QRS && state->i_global < last_QRS + ms200) {
+			state->newM5 = 0.6 * maxStartEnd(MA3->signal, 0, local_i);
 			if (state->newM5 > 1.5 * state->MM[4]) {
 				state->newM5 = 1.1 * state->MM[4];
 			}
 		}
 		//------------------------------ELIF 2-----------------------------------------------
-		else if (state->newM5 != 0 && state->qrs_index && state->i_global == last_QRS + ms200) {
+		else if (state->newM5 != 0 && state->len_QRS && state->i_global == last_QRS + ms200) {
 			state->MM_size = append5(state->MM,state->MM_size,state->newM5);
 			state->M = mean(state->MM,state->MM_size);
 		}
 		//------------------------------ELIF 3-------------------------------------------
-		else if (state->qrs_index && state->i_global > last_QRS + ms200 && state->i_global < last_QRS + ms1200) {
+		else if (state->len_QRS && state->i_global > last_QRS + ms200 && state->i_global < last_QRS + ms1200) {
 			state->M = (mean(state->MM,state->MM_size)) * state->M_slope[state->i_global - (last_QRS + ms200)];
 		}
 		//------------------------------ELIF 4-------------------------------------------
-		else if (state->qrs_index && state->i_global > last_QRS + ms1200) {
+		else if (state->len_QRS && state->i_global > last_QRS + ms1200) {
 			state->M = 0.6 * mean(state->MM,state->MM_size);
 		}
 		//----------------------------- DETECTION ----------------------------------------
-		if (!(state->qrs_index) && MA3->signal[local_i] > state->M) {
-			state->QRS[state->qrs_index++] = state->i_global;
-			last_QRS = state->i_global;
-//			state->thi_list[state->qrs_index] = state->i_global;														// note: thi_list pode ser definido dentro de engzee (n precisa de historico)
-			state->thi = state->i_global;
-			// Updates unfiltered section
-			state->unfiltered_section[0] = state->unfiltered_section[state->section_index-3];
-			state->unfiltered_section[1] = state->unfiltered_section[state->section_index-2];
-			state->unfiltered_section[2] = state->unfiltered_section[state->section_index-1];
-			state->section_index = 3;
 
-		} else if (state->qrs_index && state->i_global > last_QRS + ms200 && MA3->signal[local_i] > state->M) {
-			state->QRS[state->qrs_index++] = state->i_global;
+		// First detection
+		if (!(state->len_QRS) && MA3->signal[local_i] > state->M) {
+			state->QRS[state->len_QRS++] = state->i_global;
 			last_QRS = state->i_global;
-//			state->thi_list[state->qrs_index] = state->i_global;
-			state->thi = state->i_global;
-//			state->qrs_index++;
-			state->unfiltered_section[0] = state->unfiltered_section[state->section_index-3];
-			state->unfiltered_section[1] = state->unfiltered_section[state->section_index-2];
-			state->unfiltered_section[2] = state->unfiltered_section[state->section_index-1];
-			state->section_index = 3;
+			state->thi = true;
+			update_unfiltered_section(state->unfiltered_section,&(state->len_unfiltered_section));
+		// Other detections
+		} else if (state->len_QRS && (state->i_global > last_QRS + ms200) && (MA3->signal[local_i] > state->M)) {
+			state->QRS[state->len_QRS++] = state->i_global;
+			last_QRS = state->i_global;
+			state->thi = true;
+			update_unfiltered_section(state->unfiltered_section,&(state->len_unfiltered_section));
 		}
 		//------------------------------- THI e THF -------------------------------------
-		if (state->thi && state->i_global < state->thi + ms160) {
-			if (MA3->signal[local_i] < -(state->M) && MA3->signal[local_i-1] > -(state->M)) {
-				state->thf = 1;
+		if (state->thi && (state->i_global < last_QRS + ms160)) {
+			if ((MA3->signal[local_i] < -(state->M)) && (MA3->signal[local_i-1] > -(state->M))) {
+				state->thf = true;
 			}
-			if (state->thf && MA3->signal[local_i] < -(state->M)) {
+			if (state->thf && (MA3->signal[local_i] < -(state->M))) {
 				state->counter++;
 			} else if (MA3->signal[local_i] > -(state->M) && state->thf) {
 				state->counter = 0;
-				state->thi = 0;
-				state->thf = 0;
+				state->thi = false;
+				state->thf = false;
 			}
-		} else if (state->thi && state->i_global > state->thi + ms160) {
+		} else if (state->thi && (state->i_global > last_QRS + ms160)) {
 			state->counter = 0;
-			state->thi = 0;
-			state->thf = 0;
+			state->thi = false;
+			state->thf = false;
 		}
 		//-------------------------- FIND ACTUAL PEAKS ---------------------------
-		if (state->counter > neg_threshold) {
-//			for (int k = state->thi_list[state->qrs_index - 1] - 2; k < i; k++) {
-//				state->unfiltered_section[state->section_index] = unfiltered_ecg->signal[k];		// note: me parece estranho
-//				state->section_index++;
+		if (state->counter > NEG_THRESHOLD) {
+//			for (int k = state->thi_list[state->len_QRS - 1] - 2; k < i; k++) {
+//				state->unfiltered_section[state->len_unfiltered_section] = unfiltered_ecg->signal[k];		// note: me parece estranho
+//				state->len_unfiltered_section++;
 //			}
-			maxi = indexMax(state->unfiltered_section, max_section_size);
+			maxi = indexMax(state->unfiltered_section, state->len_unfiltered_section);
 
-			state->r_peaks[state->peaks_index++] = maxi + last_QRS - neg_threshold;
+			state->r_peaks[state->len_r_peaks++] = maxi + last_QRS - NEG_THRESHOLD;
 			state->counter = 0;
-			state->thi = 0;
-			state->thf = 0;
+			state->thi = false;
+			state->thf = false;
 		}
 		state->i_global++;
 	}
 //	if (first == 0){
-//		for (int l = 0; l < (*state->peaks_index); l++) {
+//		for (int l = 0; l < (*state->len_r_peaks); l++) {
 //			state->r_peaks[l] = state->r_peaks[l + 1];
 //		}
 //		first++;
-//		(*state->peaks_index)--;
+//		(*state->len_r_peaks)--;
 //	}
 
 }

@@ -23,42 +23,40 @@
 #define ms200 50
 #define ms1200 300
 #define ms160 40
-#define neg_threshold 2
-#define max_qrs_size 320
-#define max_section_size 25
+#define NEG_THRESHOLD 2
+#define MAX_QRS_SIZE 320
+#define MAX_SECTION_SIZE 25
 /* USER CODE END PM */
 
 // Struct for Engzee detection
-typedef struct {
-    float M;
-    float MM[5];
-    uint16_t MM_size;
-//    int mm_count;
+typedef struct EngzeeState{
+	// M-threshold parameters
+	float M;								// M threshold
+    float MM[5];							// M buffer, max size 5
+    uint16_t MM_size;						// M buffer length
+    float newM5;							// potential new element of M buffer
+    float M_slope[M_SLOPE_SIZE];  // slope used for M parameter
 
-    uint32_t QRS[MAX_QRS];
-    uint32_t qrs_index;
+    // Detection window parameters
+    bool thi;								// signals detection
+    bool thf;								// signals sudden change
+    uint8_t counter;						// number of instants in window
+    float unfiltered_section[ms4000];		// section of unfiltered ecg signal updated every time a new beat is detected
+    uint16_t len_unfiltered_section;		// length of unfiltered section
 
-//    int thi_list[THI_LIST_SIZE];
-    uint32_t thi;
-
-    uint32_t thf;
-    int counter;
-
-    float newM5;
-
-    int unfiltered_section[MAX_SECTION];
-    uint16_t section_index;
-    int maxi;
-
-    float M_slope[M_SLOPE_SIZE];  // para fs = 250Hz
-
-    uint32_t i_global;
+    // Constants
     uint8_t fs;	// sampling frequency
 
-    uint32_t r_peaks[MAX_R_PEAKS];
-    uint16_t peaks_index;
+    // R peaks detected in filtered signal
+    uint32_t QRS[MAX_QRS];
+    uint32_t len_QRS;
 
-    int len_engzee;
+    // true R peaks (detected in unfiltered section)
+    uint32_t r_peaks[MAX_R_PEAKS];
+    uint16_t len_r_peaks;
+
+    // Absolute instant
+    uint32_t i_global;
 } EngzeeState;
 
 void engzee_differentiation(struct Signal *input, struct Signal *diff_E);

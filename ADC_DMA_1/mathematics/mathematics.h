@@ -16,8 +16,8 @@
 #include <stdint.h>
 
 float max(float* arr, int size);
-float max2(float* arr, int start, int end);
-int indexMax(int* arr, int size);
+float maxStartEnd(float* arr, int start, int end);
+int indexMax(float* arr, uint16_t size);
 int compareInts(const void* a, const void* b);
 void intersect(int* arr1, int len1, int* arr2, int len2, int* result_len, int* result);
 int lowerBound(uint32_t* arr, int size, int lower_bound);
