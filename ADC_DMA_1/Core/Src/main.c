@@ -51,10 +51,11 @@
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
 DMA_HandleTypeDef hdma_adc1;
+
 TIM_HandleTypeDef htim2;
 
 /* USER CODE BEGIN PV */
-uint32_t buffer[BUF_LEN];
+uint16_t buffer[BUF_LEN];
 
 // Flags for processing circular buffer
 uint8_t fill = 0; //1: processing 1st half; 2: processing 2nd half
@@ -65,10 +66,10 @@ uint32_t t_1;
 uint32_t t_2;
 uint32_t t_3;
 uint32_t t_4;
-uint32_t buffer_1250_0;
-uint32_t buffer_1250_1;
-uint32_t buffer_1251_0;
-uint32_t buffer_1251_1;
+uint16_t buffer_1250_0;
+uint16_t buffer_1250_1;
+uint16_t buffer_1251_0;
+uint16_t buffer_1251_1;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -93,10 +94,7 @@ void notEnoughTimeError(void);
   */
 int main(void)
 {
-	// Ativa o DWT Cycle Counter (Necessário para MCUs Cortex-M3/M4/M7)
-	CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk; // Habilita o rastreamento
-	DWT->CYCCNT = 0; // Zera o contador
-	DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk; // Habilita o contador
+
   /* USER CODE BEGIN 1 */
 	GPIO_PinState PB12bitstatus = GPIO_PIN_RESET;
 	// Filter coefficients
@@ -140,6 +138,7 @@ int main(void)
 	diff_E.len_state = 				FILTER_B_NOISE_ORDER;
 
 	unfiltered_ecg.len_signal = BUF_LEN_HALF;
+	filtered_ecg_mid.len_signal= BUF_LEN_HALF;
 	filtered_ecg_C.len_signal = BUF_LEN_HALF;
 	filtered_ecg_E.len_signal = BUF_LEN_HALF;
 	diff_C.len_signal = 		BUF_LEN_HALF;
@@ -190,16 +189,10 @@ int main(void)
 	HAL_TIM_Base_Start(&htim2);
 	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);	// Acende LED quando comeca a coleta
 
-	printf("Finished initialization\n");
-
-	// Atraso de 3 segundos antes de iniciar a aquisição de dados (para teste)
-	// HAL_Delay(3000);
-	//while(HAL_GPIO_ReadPin(PB_GPIO_Port, PB_Pin)); // Quando utilizar o botão para inciar a coleta
-
 	while(PB12bitstatus != GPIO_PIN_SET){
 			PB12bitstatus = HAL_GPIO_ReadPin(SYNTH_IN_GPIO_Port,SYNTH_IN_Pin);		// Aguarda sintetizador setar o pino para comecar a coleta
 		}
-	HAL_ADC_Start_DMA(&hadc1, buffer, BUF_LEN);
+	HAL_ADC_Start_DMA(&hadc1, (uint32_t*)buffer, BUF_LEN);
 	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);	// Acende LED quando comeca a coleta
 	while(firstHalfFull == false);
 	fill = 1;
@@ -209,8 +202,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
 	while (finishedSampling == false) {
 		t_3 = DWT->CYCCNT;
-		buffer_1250_0 = buffer[1249];
-		buffer_1251_0 = buffer[1250];
+
 		if (fill == 1) {
 			firstHalfFull = false;
 			// Convert first half of array to float type
@@ -247,12 +239,13 @@ int main(void)
 		engzee_lourenco(&unfiltered_ecg, &diff_filtered_E, &engzee_state);
 		christov(&diff_filtered_C, &christov_state);
 
-		// Combines detections from both algorithms
-		tradeoff(&engzee_state,&christov_state, &final_detect);
-		t_4 = DWT->CYCCNT;
+		// Waits for more data
 		while((firstHalfFull || secondHalfFull || finishedSampling) == false);
-		buffer_1250_1 = buffer[1249];
-		buffer_1251_1 = buffer[1250];
+
+		// Checks if detection is done
+		PB12bitstatus = HAL_GPIO_ReadPin(SYNTH_IN_GPIO_Port,SYNTH_IN_Pin);		// Aguarda sintetizador setar o pino para comecar a coleta
+		if (PB12bitstatus != GPIO_PIN_SET) finishedSampling = true;
+
 		if ((fill == 1 && firstHalfFull) ||
 			(fill == 2 && secondHalfFull)) {
 			notEnoughTimeError();
@@ -268,10 +261,12 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	// Combines detections from both algorithms
+	tradeoff(&engzee_state,&christov_state, &final_detect);
 	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);	// Turns LED off when done sampling
-}
+	return 0;
   /* USER CODE END 3 */
-
+}
 
 /**
   * @brief System Clock Configuration
@@ -476,12 +471,16 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc) {
-	t_1 = DWT->CYCCNT;
+//	t_1 = DWT->CYCCNT;
+//	buffer_1250_0 = buffer[1249];
+//	buffer_1251_0 = buffer[1250];
 	firstHalfFull = true;
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
-	t_2 = DWT->CYCCNT;
+//	t_2 = DWT->CYCCNT;
+//	buffer_1250_1 = buffer[1249];
+//	buffer_1251_1 = buffer[1250];
 	secondHalfFull = true;
 }
 
@@ -495,6 +494,18 @@ int _write(int file, char *ptr, int len)
 	}
 	return len;
 }
+
+/**
+  * @brief  This function is executed in case the circular buffer is starting to be overwritten but processing is not yet over.
+  * @retval None
+  */
+void notEnoughTimeError(void){
+	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);	// Turns LED off when done sampling
+	HAL_Delay(200);
+	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);	// Turns LED off when done sampling
+	HAL_Delay(200);
+}
+
 /* USER CODE END 4 */
 
 /**
@@ -510,17 +521,6 @@ void Error_Handler(void)
 	{
 	}
   /* USER CODE END Error_Handler_Debug */
-}
-
-/**
-  * @brief  This function is executed in case the circular buffer is starting to be overwritten but processing is not yet over.
-  * @retval None
-  */
-void notEnoughTimeError(void){
-	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);	// Turns LED off when done sampling
-	HAL_Delay(200);
-	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);	// Turns LED off when done sampling
-	HAL_Delay(200);
 }
 
 #ifdef  USE_FULL_ASSERT

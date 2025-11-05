@@ -26,11 +26,12 @@
 #define ms350 87
 #define ms1200 300
 #define ms4000 1000
+#define ms10000 2500
 #define max_qrs_size 320
 #define max_section_size 25
 #define BUF_LEN_HALF 1250
 #define MAX_FILTER_ORDER 20 // maximum allowed filter order
-#define MAX_QRS 320
+#define MAX_QRS 1000
 #define M_SLOPE_SIZE 250
 /* USER CODE END PM */
 
@@ -51,7 +52,7 @@ typedef struct ChristovState{
     float MM[5];					// M buffer, max size 5
     uint16_t MM_size;				// size of M buffer
     float newM5;					// new value to be added to buffer
-    float M_section[ms4000];		// stores signal values since last detection
+    float M_section[ms10000];		// stores signal values since last detection
     uint32_t len_M_section;			// size of M section
     float M_slope[M_SLOPE_SIZE];	// slope used for M parameter
 
@@ -70,7 +71,7 @@ typedef struct ChristovState{
     float MFR;
 
     // Constants
-    int fs;							// sampling frequency
+    uint8_t fs;							// sampling frequency
 
     // Detections
     uint32_t QRS[MAX_QRS];			// detection array

@@ -57,7 +57,7 @@ void christov(Signal* MA3, ChristovState* state){
 
 	// --------- Zero out filter delay --------- //
 	if (state->i_global == 0) {
-		memset(&(MA3->signal[0]),0,TOTAL_TAPS);
+		memset(MA3->signal,0,TOTAL_TAPS*sizeof(float));
 	}
 
 	// ------------ Detection loop ------------ //

@@ -24,7 +24,6 @@
 #define ms1200 300
 #define ms160 40
 #define NEG_THRESHOLD 2
-#define MAX_QRS_SIZE 320
 #define MAX_SECTION_SIZE 25
 /* USER CODE END PM */
 
@@ -41,7 +40,7 @@ typedef struct EngzeeState{
     bool thi;								// signals detection
     bool thf;								// signals sudden change
     uint8_t counter;						// number of instants in window
-    float unfiltered_section[ms4000];		// section of unfiltered ecg signal updated every time a new beat is detected
+    float unfiltered_section[ms10000];		// section of unfiltered ecg signal updated every time a new beat is detected
     uint16_t len_unfiltered_section;		// length of unfiltered section
 
     // Constants
@@ -52,7 +51,7 @@ typedef struct EngzeeState{
     uint32_t len_QRS;
 
     // true R peaks (detected in unfiltered section)
-    uint32_t r_peaks[MAX_R_PEAKS];
+    uint32_t r_peaks[MAX_QRS];
     uint16_t len_r_peaks;
 
     // Absolute instant

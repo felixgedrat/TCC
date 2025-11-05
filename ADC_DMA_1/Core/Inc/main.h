@@ -26,6 +26,9 @@
 extern "C" {
 #endif
 
+/* Includes ------------------------------------------------------------------*/
+#include "stm32f4xx_hal.h"
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 /* Includes ------------------------------------------------------------------*/
@@ -36,7 +39,7 @@ extern "C" {
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
-#define MAX_DETECTION_FINAL 500
+#define MAX_DETECTION_FINAL 2000
 // Struct for global detection and parameters
 typedef struct {
 	uint32_t detections[MAX_DETECTION_FINAL];
@@ -59,8 +62,16 @@ typedef struct {
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-
+void notEnoughTimeError(void);
 /* USER CODE END EFP */
+
+/* Private defines -----------------------------------------------------------*/
+#define LED_Pin GPIO_PIN_13
+#define LED_GPIO_Port GPIOC
+#define PB_Pin GPIO_PIN_0
+#define PB_GPIO_Port GPIOA
+#define SYNTH_IN_Pin GPIO_PIN_12
+#define SYNTH_IN_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 /* Private defines -----------------------------------------------------------*/
@@ -79,12 +90,12 @@ void Error_Handler(void);
 #define MAX_R_PEAKS 320
 #define MAX_DETECTION_INIT 320
 
-
 // FILTER MACROS
 //#define MAX_FILTER_ORDER 20 // maximum allowed filter order
-#define FLOAT_1div5  (1.0f / 5.0f)
+//#define FLOAT_1div5  (1.0f / 5.0f)
+#define FLOAT_1div5  0.2
 #define FLOAT_1div7  (1.0f / 7.0f)
-#define FLOAT_1div10 (1.0f / 10.0f)
+#define FLOAT_1div10 0.1
 #define FILTER_B1_ORDER 4
 #define FILTER_B2_ORDER 6
 #define FILTER_B_NOISE_ORDER 9
