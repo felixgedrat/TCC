@@ -144,10 +144,6 @@ void engzee_lourenco(Signal* unfiltered_ecg, Signal* MA3, EngzeeState* state){
 		}
 		//-------------------------- FIND ACTUAL PEAKS ---------------------------
 		if (state->counter > NEG_THRESHOLD) {
-//			for (int k = state->thi_list[state->len_QRS - 1] - 2; k < i; k++) {
-//				state->unfiltered_section[state->len_unfiltered_section] = unfiltered_ecg->signal[k];		// note: me parece estranho
-//				state->len_unfiltered_section++;
-//			}
 			maxi = indexMax(state->unfiltered_section, state->len_unfiltered_section);
 
 			state->r_peaks[state->len_r_peaks++] = maxi + last_QRS - NEG_THRESHOLD;
@@ -157,13 +153,5 @@ void engzee_lourenco(Signal* unfiltered_ecg, Signal* MA3, EngzeeState* state){
 		}
 		state->i_global++;
 	}
-//	if (first == 0){
-//		for (int l = 0; l < (*state->len_r_peaks); l++) {
-//			state->r_peaks[l] = state->r_peaks[l + 1];
-//		}
-//		first++;
-//		(*state->len_r_peaks)--;
-//	}
-
 }
 

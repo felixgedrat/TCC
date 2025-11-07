@@ -64,7 +64,7 @@ typedef struct ChristovState{
     // R-threshold parameters
     float R;						// Current R parameter
     float RR[5];					// R buffer, max size 5
-    uint8_t rr_index;				// size of R buffer
+    uint8_t RR_size;				// size of R buffer
     uint32_t Rm;					// mean integer of RR buffer
 
     // MFR threshold

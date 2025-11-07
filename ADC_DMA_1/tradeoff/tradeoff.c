@@ -18,7 +18,7 @@
 //#define MAX_LEN 320
 #define MAX_LEN 500
 #define MAX_SEARCH_INTERVAL 200
-#define DELTA 40	// DELTA = missed beats will be searched in the detections[i]+delta, detections[i+1]-delta section
+#define DELTA 10	// DELTA = missed beats will be searched in the detections[i]+delta, detections[i+1]-delta section
 
 /**
  * @brief Tradeoff
@@ -26,33 +26,51 @@
  * @output final detections after tradeoff
  */
 void tradeoff(EngzeeState* engzee_state, ChristovState* christov_state, FinalDetect* final_detect) {
-    final_detect->len_detections = engzee_state->len_r_peaks;
-    uint16_t i;
-    for (i = 0; i < engzee_state->len_r_peaks; i++) {
-        final_detect->detections[i] = engzee_state->r_peaks[i];
-    }
 
+	// Declare variables
+	uint16_t i;																// Iterating index
+	uint32_t lower_bound;													// Lower bound for searching
+	uint32_t upper_bound;													// Upper bound for searching
+	uint8_t missed_beat_len = 0;											// Length of missed beats in search interval
+	uint32_t missed_beat[MAX_QRS];      									// Array of missed beats
+	uint8_t k;																// Iterating index
+
+	// Removes first detection by both algorithms
+	for (i = 0; i < engzee_state->len_r_peaks - 1; i++) {
+		engzee_state->r_peaks[i] = engzee_state->r_peaks[i + 1];
+	}
+	engzee_state->len_r_peaks--;
+
+	for (i = 0; i < christov_state->len_QRS - 1; i++) {
+		christov_state->QRS[i] = christov_state->QRS[i + 1];
+	}
+	christov_state->len_QRS--;
+
+
+	// Initialize final detection array
+	final_detect->len_detections = engzee_state->len_r_peaks; 				// Set initial length of final detection equal to Engzee
+	for (i = 0; i < engzee_state->len_r_peaks; i++) {						// Copy Engzee detection array
+	        final_detect->detections[i] = engzee_state->r_peaks[i];
+	    }
+
+
+    // Start doing combined analysis
     if (final_detect->len_detections > 2*DELTA) {
-    	for (i = 0; i < engzee_state->len_r_peaks - 1; i++) {
-
-    	        int a = final_detect->detections[i] + DELTA;         // determines upper and lower bounds for searching missed
-    	        int b = final_detect->detections[i + 1] - DELTA;     //      detections in Christov
-    	        if (b - a < 0) {
-    	            continue;
-    	        }
-
-    	        uint8_t missed_beat_len = 0;
-    	        uint32_t missed_beat[christov_state->len_QRS];      // maximum number of missed detections is equal to Christov length
-    	        findValuesInRange(christov_state->QRS, christov_state->len_QRS, a, b, &missed_beat_len, missed_beat);
-    	        if (missed_beat_len > 0) {
-    	            for (int k = 0; k < missed_beat_len; k++) {
-    	                final_detect->detections[(final_detect->len_detections)++] = missed_beat[k];    // add missed detections to array
-    	            }
-    	        }
+    	for (i = 0; i < final_detect->len_detections - 1; i++) {
+    		missed_beat_len = 0;
+			lower_bound = final_detect->detections[i] + DELTA;         		// determines upper and lower bounds for searching missed
+			upper_bound = final_detect->detections[i + 1] - DELTA;     		//      detections in Christov
+				if (upper_bound - lower_bound >= 0) {
+					findValuesInRange(christov_state->QRS, christov_state->len_QRS, lower_bound, upper_bound, &missed_beat_len, missed_beat);
+					if (missed_beat_len > 0) {
+						for (k = 0; k < missed_beat_len; k++) {
+							final_detect->detections[(final_detect->len_detections)++] = missed_beat[k];    // add missed detections to array
+					}
+				}
+			}
     	}
-
     } else {
-        for (int i = 0; i < christov_state->len_QRS; i++) {
+        for (i = 0; i < christov_state->len_QRS; i++) {
             final_detect->detections[i] = christov_state->QRS[i];
         }
         final_detect->len_detections = christov_state->len_QRS;

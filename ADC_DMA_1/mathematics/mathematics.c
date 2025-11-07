@@ -150,8 +150,10 @@ void findValuesInRange(uint32_t* arr, uint32_t size, uint32_t lower_bound, uint3
 	uint16_t i;
     uint16_t start = lowerBound(arr, size, lower_bound);
     uint16_t end = upperBound(arr, size, upper_bound);
-    for (i = start; i <= end; i++) {
-        result[(*result_len)++] = arr[i];
+    if (arr[start] > lower_bound && arr[end] < upper_bound) {
+		for (i = start; i <= end; i++) {
+			result[(*result_len)++] = arr[i];
+		}
     }
 }
 
@@ -203,7 +205,8 @@ uint16_t append_ms350(float* array, uint16_t array_size, float value){
 	if (array_size < ms350){
 		array[array_size++]= value;
 	} else if (array_size == ms350) {
-		for (int j = 0; j < ms350 - 1; j++) {
+		uint16_t j;
+		for (j = 0; j < ms350 - 1; j++) {
 			array[j] = array[j + 1];
 		}
 		array[ms350-1] = value;

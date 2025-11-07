@@ -54,7 +54,7 @@ void christov(Signal* MA3, ChristovState* state){
 	float max_latest;
 	float max_earliest;
 	if (state->len_QRS > 0) last_QRS = state->QRS[state->len_QRS - 1];
-
+	uint16_t ms5000 = 5 * state->fs;
 	// --------- Zero out filter delay --------- //
 	if (state->i_global == 0) {
 		memset(MA3->signal,0,TOTAL_TAPS*sizeof(float));
@@ -65,19 +65,19 @@ void christov(Signal* MA3, ChristovState* state){
 		//////////////////////////////////////////////////
 		// M threshold
 		//------------------------------START IF-------------------------------------------
-		if (state->i_global < 5 * state->fs) {
+		if (state->i_global < ms5000) {
 			state->M = 0.6 * max(MA3->signal, local_i);
 			state->MM_size = append5(state->MM,state->MM_size,state->M);
 		}
 		//------------------------------ELIF 1-----------------------------------------------
-		else if (state->len_QRS && state->i_global < last_QRS + ms200) {
+		else if (state->len_QRS && (state->i_global < last_QRS + ms200)) {
 			state->newM5 = 0.6*max(state->M_section,state->len_M_section);
 			if (state->newM5 > 1.5 * state->MM[state->MM_size-1]) {
 				state->newM5 = 1.1 * state->MM[state->MM_size-1];
 			}
 		}
 		//------------------------------ELIF 2-----------------------------------------------
-		else if (state->len_QRS && state->i_global == last_QRS + ms200) {
+		else if (state->len_QRS && (state->i_global == last_QRS + ms200)) {
 			if (state->newM5 == 0) {
 				state->newM5 = state->MM[state->MM_size-1];
 			}
@@ -86,10 +86,10 @@ void christov(Signal* MA3, ChristovState* state){
 		}
 		//------------------------------ELIF 3-------------------------------------------
 		else if (state->len_QRS && (state->i_global > last_QRS + ms200) && (state->i_global < last_QRS + ms1200)) {
-			state->M = mean(state->MM,state->MM_size) * state->M_slope[state->i_global - last_QRS + ms200];
+			state->M = mean(state->MM,state->MM_size) * state->M_slope[state->i_global - (last_QRS + ms200)];
 		}
 		//------------------------------ELIF 4-------------------------------------------
-		else if (state->len_QRS && last_QRS + ms1200) {
+		else if (state->len_QRS && (state->i_global > last_QRS + ms1200)) {
 			state->M = 0.6 * (mean(state->MM,state->MM_size));
 		}
 
@@ -105,9 +105,9 @@ void christov(Signal* MA3, ChristovState* state){
 		//////////////////////////////////////////////////
 		// R threshold
 
-		if (state->len_QRS && state->i_global < last_QRS + (int)(2.0 / 3.0 * ((float)state->Rm))) {
+		if (state->len_QRS && (state->i_global < (last_QRS + (int)(2.0 / 3.0 * ((float)state->Rm))))) {
 			state->R = 0;
-		} else if (state->len_QRS && state->i_global > last_QRS+ (int)(2.0 / 3.0 * ((float)state->Rm)) && state->i_global < last_QRS + state->Rm) {
+		} else if (state->len_QRS && (state->i_global > (last_QRS + (int)(2.0 / 3.0 * ((float)state->Rm)))) && (state->i_global < (last_QRS + state->Rm))) {
 			state->R = (state->M - mean(state->MM,state->MM_size)) / 1.4;
 		}
 
@@ -120,20 +120,20 @@ void christov(Signal* MA3, ChristovState* state){
 		// Detection
 
 		// First detection
-		if (!(state->len_QRS) && MA3->signal[local_i] > state->MFR) {
+		if (!(state->len_QRS) && (MA3->signal[local_i] > state->MFR)) {
 			state->QRS[state->len_QRS++] = state->i_global;
 			last_QRS = state->i_global;
 			state->len_M_section = 0;
 
 		// Other detections
-		} else if (state->len_QRS && state->i_global > last_QRS + ms200 && MA3->signal[local_i] > state->MFR) {
+		} else if (state->len_QRS && (state->i_global > last_QRS + ms200) && (MA3->signal[local_i] > state->MFR)) {
 			state->QRS[state->len_QRS++] = state->i_global;	// Stores detection
 			last_QRS = state->i_global;						// updates last QRS
 			state->len_M_section = 0;						// zeroes out M section
 			if (state->len_QRS > 2) {
 				uint32_t RR_add = state->QRS[state->len_QRS-1] - state->QRS[state->len_QRS-2];
-				state->rr_index = append5(state->RR,state->rr_index,RR_add);
-				state->Rm = (uint32_t)mean(state->RR,state->rr_index);
+				state->RR_size = append5(state->RR,state->RR_size,RR_add);
+				state->Rm = (uint32_t)mean(state->RR,state->RR_size);
 			}
 
 		}
@@ -143,11 +143,5 @@ void christov(Signal* MA3, ChristovState* state){
 		if (state->len_QRS) state->M_section[state->len_M_section++] = MA3->signal[local_i];
 		state->i_global++;
 	}
-
-	// the lines below do the functionality of a pop(0) operation in Python
-	for (uint32_t l = 0; l < state->len_QRS; l++) {
-		state->QRS[l] = state->QRS[l + 1];
-	}
-	state->len_QRS--;
 
 }

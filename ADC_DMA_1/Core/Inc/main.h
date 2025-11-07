@@ -83,10 +83,12 @@ void notEnoughTimeError(void);
 #define SYNTH_IN_GPIO_Port GPIOB
 
 #define BUF_LEN 2500
+#if BUF_LEN < 2500
+    #error "BUF_LEN must be at least 2500 for fs = 250 Hz"
+#endif
+
 #define PREFILTERING_HISTORY 7
-//#define MAX_SECTION 1000		// length of unfiltered section
 #define THI_LIST_SIZE 320
-//#define MAX_QRS 320
 #define MAX_R_PEAKS 320
 #define MAX_DETECTION_INIT 320
 
