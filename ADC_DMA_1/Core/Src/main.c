@@ -62,14 +62,6 @@ uint8_t fill = 0; //1: processing 1st half; 2: processing 2nd half
 bool firstHalfFull;
 bool secondHalfFull;
 bool finishedSampling;
-uint32_t t_1;
-uint32_t t_2;
-uint32_t t_3;
-uint32_t t_4;
-uint16_t buffer_1250_0;
-uint16_t buffer_1250_1;
-uint16_t buffer_1251_0;
-uint16_t buffer_1251_1;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -201,7 +193,7 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 	while (finishedSampling == false) {
-		t_3 = DWT->CYCCNT;
+//		t_3 = DWT->CYCCNT;
 
 		if (fill == 1) {
 			firstHalfFull = false;

@@ -34,7 +34,9 @@ typedef struct EngzeeState{
     float MM[5];							// M buffer, max size 5
     uint16_t MM_size;						// M buffer length
     float newM5;							// potential new element of M buffer
-    float M_slope[M_SLOPE_SIZE];  // slope used for M parameter
+    float M_section[ms10000];				// stores signal values since last detection
+    uint32_t len_M_section;					// size of M section
+    float M_slope[M_SLOPE_SIZE];  			// slope used for M parameter
 
     // Detection window parameters
     bool thi;								// signals detection

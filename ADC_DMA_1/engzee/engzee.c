@@ -79,17 +79,18 @@ void engzee_lourenco(Signal* unfiltered_ecg, Signal* MA3, EngzeeState* state){
 	for (local_i = 0; local_i < BUF_LEN_HALF; local_i++) {
 		// Updates last_QRS and adds unfiltered_section value
 		state->unfiltered_section[state->len_unfiltered_section++] = unfiltered_ecg->signal[local_i];
-		//------------------------- AQUI EH PARA ENCONTRAR M -----------------------------
+		//////////////////////////////////////////////////
+		// M threshold
+		//------------------------------START IF-------------------------------------------
 		if (state->i_global < five_seconds) {
-
 			state->M = 0.6 * max(MA3->signal, local_i);
 			state->MM_size = append5(state->MM,state->MM_size,state->M);
 		}
 		//------------------------------ELIF 1-----------------------------------------------
 		else if (state->len_QRS && state->i_global < last_QRS + ms200) {
-			state->newM5 = 0.6 * maxStartEnd(MA3->signal, 0, local_i);
-			if (state->newM5 > 1.5 * state->MM[4]) {
-				state->newM5 = 1.1 * state->MM[4];
+			state->newM5 = 0.6*max(state->M_section,state->len_M_section);
+			if (state->newM5 > 1.5 * state->MM[state->MM_size-1]) {
+				state->newM5 = 1.1 * state->MM[state->MM_size-1];
 			}
 		}
 		//------------------------------ELIF 2-----------------------------------------------
@@ -113,13 +114,17 @@ void engzee_lourenco(Signal* unfiltered_ecg, Signal* MA3, EngzeeState* state){
 			last_QRS = state->i_global;
 			state->thi = true;
 			update_unfiltered_section(state->unfiltered_section,&(state->len_unfiltered_section));
+			state->len_M_section = 0;
 		// Other detections
 		} else if (state->len_QRS && (state->i_global > last_QRS + ms200) && (MA3->signal[local_i] > state->M)) {
 			state->QRS[state->len_QRS++] = state->i_global;
 			last_QRS = state->i_global;
 			state->thi = true;
 			update_unfiltered_section(state->unfiltered_section,&(state->len_unfiltered_section));
+			state->len_M_section = 0;
 		}
+		// Updates M_section if necessary
+		if (state->len_QRS) state->M_section[state->len_M_section++] = MA3->signal[local_i];
 		//------------------------------- THI e THF -------------------------------------
 		if (state->thi && (state->i_global < last_QRS + ms160)) {
 			if ((MA3->signal[local_i] < -(state->M)) && (MA3->signal[local_i-1] > -(state->M))) {

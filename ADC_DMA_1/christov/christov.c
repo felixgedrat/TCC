@@ -64,16 +64,19 @@ void christov(Signal* MA3, ChristovState* state){
 	for (local_i = 0; local_i < BUF_LEN_HALF; local_i++) {
 		//////////////////////////////////////////////////
 		// M threshold
+		//------------------------------START IF-------------------------------------------
 		if (state->i_global < 5 * state->fs) {
 			state->M = 0.6 * max(MA3->signal, local_i);
 			state->MM_size = append5(state->MM,state->MM_size,state->M);
 		}
+		//------------------------------ELIF 1-----------------------------------------------
 		else if (state->len_QRS && state->i_global < last_QRS + ms200) {
 			state->newM5 = 0.6*max(state->M_section,state->len_M_section);
 			if (state->newM5 > 1.5 * state->MM[state->MM_size-1]) {
 				state->newM5 = 1.1 * state->MM[state->MM_size-1];
 			}
 		}
+		//------------------------------ELIF 2-----------------------------------------------
 		else if (state->len_QRS && state->i_global == last_QRS + ms200) {
 			if (state->newM5 == 0) {
 				state->newM5 = state->MM[state->MM_size-1];
@@ -81,15 +84,13 @@ void christov(Signal* MA3, ChristovState* state){
 			state->MM_size = append5(state->MM,state->MM_size,state->newM5);
 			state->M = mean(state->MM,state->MM_size);
 		}
+		//------------------------------ELIF 3-------------------------------------------
 		else if (state->len_QRS && (state->i_global > last_QRS + ms200) && (state->i_global < last_QRS + ms1200)) {
 			state->M = mean(state->MM,state->MM_size) * state->M_slope[state->i_global - last_QRS + ms200];
 		}
+		//------------------------------ELIF 4-------------------------------------------
 		else if (state->len_QRS && last_QRS + ms1200) {
 			state->M = 0.6 * (mean(state->MM,state->MM_size));
-		}
-
-		if (state->len_QRS) {
-			state->M_section[state->len_M_section++] = MA3->signal[local_i];
 		}
 
 		//////////////////////////////////////////////////
@@ -136,7 +137,10 @@ void christov(Signal* MA3, ChristovState* state){
 			}
 
 		}
+
+		// Updates M_section and F_section if necessary
 		state->len_F_section = append_ms350(state->F_section,state->len_F_section,MA3->signal[local_i]);
+		if (state->len_QRS) state->M_section[state->len_M_section++] = MA3->signal[local_i];
 		state->i_global++;
 	}
 

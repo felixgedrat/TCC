@@ -50,32 +50,7 @@ void tradeoff(EngzeeState* engzee_state, ChristovState* christov_state, FinalDet
     	            }
     	        }
     	}
-//    	int len_QRSs_ini = *len_QRSs;
-//        for (int i = 0; i < len_detections_ini - 1; i++) {
-//            int a = detections[i] + 10;
-//            int b = detections[i + 1] - 10;
-//            if (b - a < 0) {
-//                continue;
-//            }
-//            int search_interval_len = b - a + 1;
-//            for (int j = 0; j < search_interval_len; j++) {
-//                search_interval[j] = a + j;
-//            }
-//
-//            int missed_beat_len = 0;
-//            int missed_beat[MAX_LEN];
-//            intersect(search_interval, search_interval_len, christov_detection, len_christov,&missed_beat_len, &missed_beat[0]);
-//
-//            if (missed_beat_len > 0) {
-//                if (*len_detections + missed_beat_len > MAX_LEN) {
-//                    exit(1);
-//                }
-//                for (int k = 0; k < missed_beat_len; k++) {
-//                    detections[(*len_detections)++] = missed_beat[k];
-//                }
-//
-//            }
-//        }
+
     } else {
         for (int i = 0; i < christov_state->len_QRS; i++) {
             final_detect->detections[i] = christov_state->QRS[i];
