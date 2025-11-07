@@ -130,21 +130,21 @@ int main(void)
 	memset(&diff_filtered_E, 0, sizeof(diff_filtered_E));
 
 	// Implements filter state and signal sizes
-	unfiltered_ecg.len_state = 		FILTER_B1_ORDER;
+	unfiltered_ecg.len_state = 	FILTER_B1_ORDER;
 	filtered_ecg_mid.len_state = 	FILTER_B2_ORDER;
 	filtered_ecg_C.len_state = 		DIFFERENCE_CHRISTOV_STATE;
 	filtered_ecg_E.len_state = 		DIFFERENCE_ENGZEE_STATE;
 	diff_C.len_state = 				FILTER_B_NOISE_ORDER;
 	diff_E.len_state = 				FILTER_B_NOISE_ORDER;
 
-	unfiltered_ecg.len_signal = BUF_LEN_HALF;
-	filtered_ecg_mid.len_signal= BUF_LEN_HALF;
-	filtered_ecg_C.len_signal = BUF_LEN_HALF;
-	filtered_ecg_E.len_signal = BUF_LEN_HALF;
-	diff_C.len_signal = 		BUF_LEN_HALF;
-	diff_E.len_signal = 		BUF_LEN_HALF;
-	diff_filtered_C.len_signal= BUF_LEN_HALF;
-	diff_filtered_E.len_signal= BUF_LEN_HALF;
+	unfiltered_ecg.len_signal = 	BUF_LEN_HALF;
+	filtered_ecg_mid.len_signal= 	BUF_LEN_HALF;
+	filtered_ecg_C.len_signal = 	BUF_LEN_HALF;
+	filtered_ecg_E.len_signal = 	BUF_LEN_HALF;
+	diff_C.len_signal = 			BUF_LEN_HALF;
+	diff_E.len_signal = 			BUF_LEN_HALF;
+	diff_filtered_C.len_signal= 	BUF_LEN_HALF;
+	diff_filtered_E.len_signal= 	BUF_LEN_HALF;
 
 	// Structs for algorithm states
 	EngzeeState engzee_state;
@@ -214,6 +214,7 @@ int main(void)
 		}
 		// ------------------------------------------------------------------//
 		// --------------------------FILTERING-------------------------------//
+
 		// Filter using b1 filter
 		statefloatfilter(&unfiltered_ecg, &filtered_ecg_mid, b1_filter);
 

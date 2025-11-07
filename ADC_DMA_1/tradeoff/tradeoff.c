@@ -41,8 +41,8 @@ void tradeoff(EngzeeState* engzee_state, ChristovState* christov_state, FinalDet
     	            continue;
     	        }
 
-    	        int missed_beat_len = 0;
-    	        int missed_beat[christov_state->len_QRS];      // maximum number of missed detections is equal to Christov length
+    	        uint8_t missed_beat_len = 0;
+    	        uint32_t missed_beat[christov_state->len_QRS];      // maximum number of missed detections is equal to Christov length
     	        findValuesInRange(christov_state->QRS, christov_state->len_QRS, a, b, &missed_beat_len, missed_beat);
     	        if (missed_beat_len > 0) {
     	            for (int k = 0; k < missed_beat_len; k++) {

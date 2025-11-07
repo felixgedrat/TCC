@@ -65,17 +65,17 @@ void update_unfiltered_section(float* unfiltered_section, uint16_t* len_unfilter
  */
 void engzee_lourenco(Signal* unfiltered_ecg, Signal* MA3, EngzeeState* state){
 	uint16_t local_i;
-	uint32_t last_QRS;
+	uint32_t last_QRS = 0;
 	uint32_t maxi = 0;
 	uint32_t five_seconds = (uint32_t)5*state->fs;
 
+	if (state->len_QRS > 0) last_QRS = state->QRS[state->len_QRS - 1];
 	// --------- Zero out filter delay --------- //
 	if (state->i_global == 0) {
 		memset(MA3->signal,0,TOTAL_TAPS*sizeof(float));
 	}
 
 	// ------------ Detection loop ------------ //
-	last_QRS = state->QRS[state->len_QRS - 1];
 	for (local_i = 0; local_i < BUF_LEN_HALF; local_i++) {
 		// Updates last_QRS and adds unfiltered_section value
 		state->unfiltered_section[state->len_unfiltered_section++] = unfiltered_ecg->signal[local_i];

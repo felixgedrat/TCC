@@ -50,10 +50,10 @@ void christov_differentiation(struct Signal *input, struct Signal *diff_C) {
  */
 void christov(Signal* MA3, ChristovState* state){
 	uint32_t local_i;
-	uint32_t last_QRS;
+	uint32_t last_QRS = 0;
 	float max_latest;
 	float max_earliest;
-	last_QRS = state->QRS[state->len_QRS - 1];
+	if (state->len_QRS > 0) last_QRS = state->QRS[state->len_QRS - 1];
 
 	// --------- Zero out filter delay --------- //
 	if (state->i_global == 0) {

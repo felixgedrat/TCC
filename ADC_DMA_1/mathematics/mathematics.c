@@ -19,9 +19,10 @@
  * @input Array, size of array
  * @output Max value
  */
-float max(float* arr, int size) {
+float max(float* arr, uint16_t size) {
 	float max_val = arr[0];
-	for (int i = 1; i < size; i++) {
+	uint16_t i;
+	for (i = 1; i < size; i++) {
 		if (arr[i] > max_val) {
 			max_val = arr[i];
 		}
@@ -34,11 +35,12 @@ float max(float* arr, int size) {
  * @input Array, start and end limits
  * @output Max value
  */
-float maxStartEnd(float* arr, int start, int end){
-	float max_val = arr[start++];
-	for (uint16_t i = start; i<end;i++)
+float maxStartEnd(float* arr, uint16_t start, uint16_t end){
+	uint16_t i;
+	float max_val = arr[start];
+	for (i = start + 1; i < end; i++)
 		if (arr[i] > max_val) {
-			max_val = arr[start];
+			max_val = arr[i];
 		}
 	return max_val;
 }
@@ -48,10 +50,11 @@ float maxStartEnd(float* arr, int start, int end){
  * @input Array, size of array
  * @output Max Index value
  */
-int indexMax(float* arr, uint16_t size){
-	int max_val = arr[0];
-	int index = 0;
-	for (int i = 1; i < size; i++) {
+uint16_t indexMax(float* arr, uint16_t size){
+	float max_val = arr[0];
+	uint16_t index = 0;
+	uint16_t i;
+	for (i = 1; i < size; i++) {
 		if (arr[i] > max_val) {
 			max_val = arr[i];
 			index = i;
@@ -70,14 +73,24 @@ int compareInts(const void* a, const void* b) {
 }
 
 /**
- * @brief Function to intersection of two arrays
- * @input two arrays to be compared
- * @output intersection of two arrays
+ * @brief Finds the intersection of two integer arrays.
+ * * This function identifies and stores the common elements between
+ * arr1 and arr2 into the result array.
+ * * @param arr1 The first input array.
+ * @param len1 The size of the first array (arr1).
+ * @param arr2 The second input array.
+ * @param len2 The size of the second array (arr2).
+ * @param result_len Pointer to a variable that will store the final size of the found intersection.
+ * @param result The pre-allocated array where the intersection elements will be stored.
+ * * @attention The caller of this function MUST ensure that the 'result' array
+ * has been allocated with sufficient memory. In the worst-case scenario, the
+ * required size is the minimum of 'len1' and 'len2'.
+ * Failure to ensure adequate size will lead to a buffer overflow.
+ * * @return void
  */
-void intersect(int* arr1, int len1, int* arr2, int len2, int* result_len, int* result) {
-	//int* result = (int*)malloc(sizeof(int) * (len1 > len2 ? len2 : len1));
-	int idx = 0;
 
+void intersect(int* arr1, int len1, int* arr2, int len2, int* result_len, int* result) {
+	int idx = 0;
 	for (int i = 0; i < len1; i++) {
 		for (int j = 0; j < len2; j++) {
 			if (arr1[i] == arr2[j]) {
@@ -95,12 +108,12 @@ void intersect(int* arr1, int len1, int* arr2, int len2, int* result_len, int* r
  * @input array, size of array and lower bound
  * @output index of value that met the criteria
  */
-int lowerBound(uint32_t* arr, int size, int lower_bound) {
-    int low = 0;
-    int high = size - 1;
+uint16_t lowerBound(uint32_t* arr, uint16_t size, uint32_t lower_bound) {
+	uint16_t low = 0;
+	uint16_t high = size - 1;
 
     while (low < high) {
-        int mid = (low + high) / 2;
+    	uint16_t mid = (low + high) / 2;
         if (arr[mid] < lower_bound) {
             low = mid + 1;
         } else {
@@ -115,12 +128,12 @@ int lowerBound(uint32_t* arr, int size, int lower_bound) {
  * @input array, size of array and upper bound
  * @output index of value that met the criteria
  */
-int upperBound(uint32_t* arr, int size, int upper_bound) {
-    int low = 0;
-    int high = size - 1;
+uint16_t upperBound(uint32_t* arr, uint16_t size, uint32_t upper_bound) {
+    uint16_t low = 0;
+    uint16_t high = size - 1;
 
     while (low < high) {
-        int mid = (low + high + 1) / 2;
+        uint16_t mid = (low + high + 1) / 2;
         if (arr[mid] > upper_bound) {
             high = mid - 1;
         } else {
@@ -135,10 +148,11 @@ int upperBound(uint32_t* arr, int size, int upper_bound) {
  * @input array, bounds and result pointer and array len
  * @output void
  */
-void findValuesInRange(uint32_t* arr, uint32_t size, int lower_bound, int upper_bound, int* result_len, int* result) {
-    int start = lowerBound(arr, size, lower_bound);
-    int end = upperBound(arr, size, upper_bound);
-    for (int i = start; i <= end; i++) {
+void findValuesInRange(uint32_t* arr, uint32_t size, uint32_t lower_bound, uint32_t upper_bound, uint8_t* result_len, uint32_t* result) {
+	uint16_t i;
+    uint16_t start = lowerBound(arr, size, lower_bound);
+    uint16_t end = upperBound(arr, size, upper_bound);
+    for (i = start; i <= end; i++) {
         result[(*result_len)++] = arr[i];
     }
 }
@@ -151,7 +165,7 @@ void findValuesInRange(uint32_t* arr, uint32_t size, int lower_bound, int upper_
 float mean(float* arr, uint16_t array_size) {
     float mean = 0;
     for (uint16_t i=0; i<array_size; i++) {
-    	mean = mean + arr[array_size];
+    	mean = mean + arr[i];
     }
     mean = mean/array_size;
     return mean;
