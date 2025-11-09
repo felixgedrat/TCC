@@ -18,7 +18,7 @@
 //#define MAX_LEN 320
 #define MAX_LEN 500
 #define MAX_SEARCH_INTERVAL 200
-#define DELTA 10	// DELTA = missed beats will be searched in the detections[i]+delta, detections[i+1]-delta section
+#define DELTA 30	// DELTA = missed beats will be searched in the detections[i]+delta, detections[i+1]-delta section
 
 /**
  * @brief Tradeoff
@@ -56,7 +56,7 @@ void tradeoff(EngzeeState* engzee_state, ChristovState* christov_state, FinalDet
 
     // Start doing combined analysis
     if (final_detect->len_detections > 2*DELTA) {
-    	for (i = 0; i < final_detect->len_detections - 1; i++) {
+    	for (i = 0; i < engzee_state->len_r_peaks - 1; i++) {				// MUST be len_rpeaks to avoid inclusion of just added peaks
     		missed_beat_len = 0;
 			lower_bound = final_detect->detections[i] + DELTA;         		// determines upper and lower bounds for searching missed
 			upper_bound = final_detect->detections[i + 1] - DELTA;     		//      detections in Christov

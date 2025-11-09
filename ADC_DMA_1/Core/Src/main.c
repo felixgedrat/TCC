@@ -61,6 +61,7 @@ uint16_t buffer[BUF_LEN];
 uint8_t fill = 0; //1: processing 1st half; 2: processing 2nd half
 bool firstHalfFull;
 bool secondHalfFull;
+bool lastBuffer;
 bool finishedSampling;
 /* USER CODE END PV */
 
@@ -95,10 +96,11 @@ int main(void)
 	float b_noise[10]  = { FLOAT_1div10, FLOAT_1div10, FLOAT_1div10, FLOAT_1div10, FLOAT_1div10, FLOAT_1div10, FLOAT_1div10, FLOAT_1div10, FLOAT_1div10, FLOAT_1div10 };
 
 	// Set flags
-	firstHalfFull = false;
-	secondHalfFull = false;
-	fill = 0;
-	finishedSampling = false;
+	firstHalfFull = false;			// First Half of buffer is full and ready to be used
+	secondHalfFull = false;			// Second Half of buffer is full and ready to be used
+	lastBuffer = false;				// Last buffer will be processed (no more ECG is being sent)
+	finishedSampling = false;		// Finish detection
+	fill = 0;						// Indicates which half is being processed
 
 	/* ---------------------------INITIALIZE STRUCTS ----------------------------------------*/
 	// Structs for signals
@@ -179,13 +181,13 @@ int main(void)
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 	HAL_TIM_Base_Start(&htim2);
-	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);	// Acende LED quando comeca a coleta
+	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);	// Turns LED OFF
 
 	while(PB12bitstatus != GPIO_PIN_SET){
 			PB12bitstatus = HAL_GPIO_ReadPin(SYNTH_IN_GPIO_Port,SYNTH_IN_Pin);		// Aguarda sintetizador setar o pino para comecar a coleta
 		}
 	HAL_ADC_Start_DMA(&hadc1, (uint32_t*)buffer, BUF_LEN);
-	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);	// Acende LED quando comeca a coleta
+	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);	// Turns LED ON when detection starts
 	while(firstHalfFull == false);
 	fill = 1;
   /* USER CODE END 2 */
@@ -193,7 +195,6 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 	while (finishedSampling == false) {
-//		t_3 = DWT->CYCCNT;
 
 		if (fill == 1) {
 			firstHalfFull = false;
@@ -233,19 +234,22 @@ int main(void)
 		christov(&diff_filtered_C, &christov_state);
 
 		// Waits for more data
-		while((firstHalfFull || secondHalfFull || finishedSampling) == false);
+		while((firstHalfFull || secondHalfFull || lastBuffer) == false);
 
 		// Checks if detection is done
-		PB12bitstatus = HAL_GPIO_ReadPin(SYNTH_IN_GPIO_Port,SYNTH_IN_Pin);		// Aguarda sintetizador setar o pino para comecar a coleta
-		if (PB12bitstatus != GPIO_PIN_SET) finishedSampling = true;
+		PB12bitstatus = HAL_GPIO_ReadPin(SYNTH_IN_GPIO_Port,SYNTH_IN_Pin);		// If SYNTH_IN_Pin = GPIO_PIN_RESET means no more data will be sent
+		if ((PB12bitstatus != GPIO_PIN_SET) && !lastBuffer) {lastBuffer = true;}					// 	(but one more half buffer will still be processed to ensure nothing was missed)
+		else if (lastBuffer == true) {finishedSampling = true;}
 
-		if ((fill == 1 && firstHalfFull) ||
-			(fill == 2 && secondHalfFull)) {
-			notEnoughTimeError();
-		} else if (fill == 1 && secondHalfFull) {
-			fill = 2;
-		} else if (fill == 2 && firstHalfFull) {
-			fill = 1;
+		if (!finishedSampling) {
+			if ((fill == 1 && firstHalfFull) ||
+				(fill == 2 && secondHalfFull)) {
+				notEnoughTimeError();
+			} else if (fill == 1 && secondHalfFull) {
+				fill = 2;
+			} else if (fill == 2 && firstHalfFull) {
+				fill = 1;
+			}
 		}
 
 		HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
@@ -257,6 +261,7 @@ int main(void)
 	// Combines detections from both algorithms
 	tradeoff(&engzee_state,&christov_state, &final_detect);
 	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);	// Turns LED off when done sampling
+	HAL_ADC_Stop_DMA(&hadc1);
 	return 0;
   /* USER CODE END 3 */
 }
