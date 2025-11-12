@@ -26,7 +26,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
-#include "prefiltering.h"
 #include "christov.h"
 #include "engzee.h"
 #include "tradeoff.h"
@@ -91,9 +90,12 @@ int main(void)
   /* USER CODE BEGIN 1 */
 	GPIO_PinState PB12bitstatus = GPIO_PIN_RESET;
 	// Filter coefficients
-	float b1_filter[5] = { FLOAT_1div5, FLOAT_1div5, FLOAT_1div5, FLOAT_1div5, FLOAT_1div5 };
-	float b2_filter[7] = { FLOAT_1div7, FLOAT_1div7, FLOAT_1div7, FLOAT_1div7, FLOAT_1div7, FLOAT_1div7, FLOAT_1div7 };
-	float b_noise[10]  = { FLOAT_1div10, FLOAT_1div10, FLOAT_1div10, FLOAT_1div10, FLOAT_1div10, FLOAT_1div10, FLOAT_1div10, FLOAT_1div10, FLOAT_1div10, FLOAT_1div10 };
+	float b1_filter[5] = {FLOAT_1div5, FLOAT_1div5, FLOAT_1div5, FLOAT_1div5, FLOAT_1div5 };
+	float b2_filter[7] = {FLOAT_1div7, FLOAT_1div7, FLOAT_1div7, FLOAT_1div7, FLOAT_1div7,
+																FLOAT_1div7, FLOAT_1div7 };
+	float b_noise[10]  = {FLOAT_1div10, FLOAT_1div10, FLOAT_1div10, FLOAT_1div10,
+									FLOAT_1div10, FLOAT_1div10, FLOAT_1div10, FLOAT_1div10,
+																FLOAT_1div10, FLOAT_1div10 };
 
 	// Set flags
 	firstHalfFull = false;			// First Half of buffer is full and ready to be used
@@ -104,14 +106,14 @@ int main(void)
 
 	/* ---------------------------INITIALIZE STRUCTS ----------------------------------------*/
 	// Structs for signals
-	Signal unfiltered_ecg;
-	Signal filtered_ecg_mid;
-	Signal filtered_ecg_C;	// Two different Structs for filtered ECG section since their state is of different lengths
-	Signal filtered_ecg_E;
-	Signal diff_C;
-	Signal diff_E;
-	Signal diff_filtered_C;
-	Signal diff_filtered_E;
+	Signal unfiltered_ecg;		// Unfiltered ECG sampled by ADC (casted to float)
+	Signal filtered_ecg_mid;	// ECG signal after first filter
+	Signal filtered_ecg_C;		// Two different structs for filtered ECG section
+	Signal filtered_ecg_E;		//     since their states are of different lengths
+	Signal diff_C;				// Differentiated signal (Christov)
+	Signal diff_E;				// Differentiated signal (Engzee)
+	Signal diff_filtered_C;		// Signal after final filtering (Christov)
+	Signal diff_filtered_E;		// Signal after final filtering (Engzee)
 
 	// Zeroes all fields
 	memset(&unfiltered_ecg,0,sizeof(unfiltered_ecg));
@@ -124,7 +126,7 @@ int main(void)
 	memset(&diff_filtered_E, 0, sizeof(diff_filtered_E));
 
 	// Implements filter state and signal sizes
-	unfiltered_ecg.len_state = 	FILTER_B1_ORDER;
+	unfiltered_ecg.len_state = 		FILTER_B1_ORDER;
 	filtered_ecg_mid.len_state = 	FILTER_B2_ORDER;
 	filtered_ecg_C.len_state = 		DIFFERENCE_CHRISTOV_STATE;
 	filtered_ecg_E.len_state = 		DIFFERENCE_ENGZEE_STATE;
@@ -144,9 +146,9 @@ int main(void)
 	EngzeeState engzee_state;
 	ChristovState christov_state;
 	FinalDetect final_detect;
-	memset(&engzee_state, 0, sizeof(EngzeeState)); // zera todos os campos
-	memset(&christov_state, 0, sizeof(ChristovState)); // zera todos os campos
-	memset(&final_detect, 0, sizeof(FinalDetect)); // zera todos os campos
+	memset(&engzee_state, 0, sizeof(EngzeeState)); 		// zera todos os campos
+	memset(&christov_state, 0, sizeof(ChristovState)); 	// zera todos os campos
+	memset(&final_detect, 0, sizeof(FinalDetect)); 		// zera todos os campos
 	float increment = 0.0016064257028112205;
 	for (int j = 0; j < ms1200 - ms200; ++j) {
 			engzee_state.M_slope[j] = 1.0 - j * increment;
@@ -183,8 +185,9 @@ int main(void)
 	HAL_TIM_Base_Start(&htim2);
 	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);	// Turns LED OFF
 
+	// Wait for pin to be set to start detection
 	while(PB12bitstatus != GPIO_PIN_SET){
-			PB12bitstatus = HAL_GPIO_ReadPin(SYNTH_IN_GPIO_Port,SYNTH_IN_Pin);		// Aguarda sintetizador setar o pino para comecar a coleta
+			PB12bitstatus = HAL_GPIO_ReadPin(SYNTH_IN_GPIO_Port,SYNTH_IN_Pin);
 		}
 	HAL_ADC_Start_DMA(&hadc1, (uint32_t*)buffer, BUF_LEN);
 	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);	// Turns LED ON when detection starts

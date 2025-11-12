@@ -33,13 +33,13 @@ extern "C" {
 /* USER CODE BEGIN Includes */
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_hal.h"
-#include "prefiltering.h"
 #include "christov.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
 #define MAX_DETECTION_FINAL 2000
+
 // Struct for global detection and parameters
 typedef struct {
 	uint32_t detections[MAX_DETECTION_FINAL];
@@ -93,8 +93,6 @@ void notEnoughTimeError(void);
 #define MAX_DETECTION_INIT 320
 
 // FILTER MACROS
-//#define MAX_FILTER_ORDER 20 // maximum allowed filter order
-//#define FLOAT_1div5  (1.0f / 5.0f)
 #define FLOAT_1div5  0.2
 #define FLOAT_1div7  (1.0f / 7.0f)
 #define FLOAT_1div10 0.1

@@ -14,7 +14,6 @@
 #include <string.h>
 #include <math.h>
 #include "mathematics.h"
-#include "prefiltering.h"
 #include "main.h"
 
 

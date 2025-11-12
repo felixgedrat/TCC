@@ -70,38 +70,30 @@ void array_conversion(uint16_t* int_array, float* float_array, uint16_t buffer_l
  * @output
  */
 
-//void statefloatfilter(uint32_t* x, uint16_t len_x,uint32_t* state,uint32_t* y, uint32_t* filter, uint16_t filter_order){
 void statefloatfilter(struct Signal* input_signal, struct Signal* output_signal, float* filter){
-	uint16_t len_state = input_signal->len_state;
-	uint16_t len_input_signal = input_signal->len_signal;
-	float y_state[BUF_LEN];
-	memset(y_state,0,BUF_LEN*sizeof(float));
-	uint16_t i;
+	uint16_t len_state = input_signal->len_state;					// Get length of state and
+	uint16_t len_input_signal = input_signal->len_signal;			//    input signal
+	float y_state[BUF_LEN];											// Zeroes auxiliary array
+	memset(y_state,0,BUF_LEN*sizeof(float));						//    y_state
+	uint16_t i;														// Iteration variables
 	uint16_t j;
 
-//	for(i=0; i<len_state;i++){
-//		x_state[i] = input_signal->state[i];
-//	}
-//	for(i=len_state; i<len_input_signal+len_state;i++){
-//		x_state[i] = input_signal->signal[i-len_state];
-//	}
-
-	for(i=0; i<len_input_signal+len_state ; i++){
+	for(i=0; i<len_input_signal+len_state ; i++){					// Convolution of signals
 		for (j = 0; j < len_state+1 && i - j >= 0; j++) {
 		            y_state[i] += filter[j] * input_signal->signal[i - j];
 		        }
 	}
 
-	for(i=0; i<len_state;i++) {
-		output_signal->signal[i]=y_state[i]+input_signal->state[i];
+	for(i=0; i<len_state;i++) {										// First samples are added to
+		output_signal->signal[i]=y_state[i]+input_signal->state[i]; //     previous state
 	}
 
-	for(i=len_state; i<len_input_signal;i++){
-		output_signal->signal[i]=y_state[i];
+	for(i=len_state; i<len_input_signal;i++){						// Middle samples copied to
+		output_signal->signal[i]=y_state[i];						//    output array
 	}
 
-	for(i=len_input_signal;i<len_state+len_input_signal;i++){
-		input_signal->state[i-len_input_signal]=y_state[i];
+	for(i=len_input_signal;i<len_state+len_input_signal;i++){		// Update state of filter with
+		input_signal->state[i-len_input_signal]=y_state[i];			//    last samples
 	}
 
 }

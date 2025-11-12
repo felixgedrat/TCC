@@ -14,7 +14,6 @@
 #include <string.h>
 #include <math.h>
 #include "mathematics.h"
-#include "prefiltering.h"
 #include "christov.h"
 #include "main.h"
 
@@ -33,20 +32,21 @@ typedef struct EngzeeState{
 	float M;								// M threshold
     float MM[5];							// M buffer, max size 5
     uint16_t MM_size;						// M buffer length
-    float newM5;							// potential new element of M buffer
-    float M_section[ms10000];				// stores signal values since last detection
-    uint32_t len_M_section;					// size of M section
-    float M_slope[M_SLOPE_SIZE];  			// slope used for M parameter
+    float newM5;							// Potential new element of M buffer
+    float M_section[ms10000];				// Stores signal values since last detection
+    uint32_t len_M_section;					// Size of M section
+    float M_slope[M_SLOPE_SIZE];  			// Slope used for M parameter
 
     // Detection window parameters
-    bool thi;								// signals detection
-    bool thf;								// signals sudden change
-    uint8_t counter;						// number of instants in window
-    float unfiltered_section[ms10000];		// section of unfiltered ecg signal updated every time a new beat is detected
-    uint16_t len_unfiltered_section;		// length of unfiltered section
+    bool thi;								// Signals detection
+    bool thf;								// Signals sudden change
+    uint8_t counter;						// Number of instants in window
+    float unfiltered_section[ms10000];		// Section of unfiltered ECG signal updated
+    										//     every time a new beat is detected
+    uint16_t len_unfiltered_section;		// Length of unfiltered section
 
     // Constants
-    uint8_t fs;	// sampling frequency
+    uint8_t fs;								// Sampling frequency
 
     // R peaks detected in filtered signal
     uint32_t QRS[MAX_QRS];
@@ -56,7 +56,7 @@ typedef struct EngzeeState{
     uint32_t r_peaks[MAX_QRS];
     uint16_t len_r_peaks;
 
-    // Absolute instant
+    // Absolute iteration instant
     uint32_t i_global;
 } EngzeeState;
 

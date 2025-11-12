@@ -11,13 +11,9 @@
 #include <string.h>
 #include <math.h>
 #include "mathematics.h"
-#include "prefiltering.h"
 #include "main.h"
 #include "engzee.h"
 
-//#define MAX_LEN 320
-#define MAX_LEN 500
-#define MAX_SEARCH_INTERVAL 200
 #define DELTA 30	// DELTA = missed beats will be searched in the detections[i]+delta, detections[i+1]-delta section
 
 /**
