@@ -70,6 +70,8 @@ void notEnoughTimeError(void);
 #define LED_GPIO_Port GPIOC
 #define PB_Pin GPIO_PIN_0
 #define PB_GPIO_Port GPIOA
+#define SD_CS_Pin GPIO_PIN_4
+#define SD_CS_GPIO_Port GPIOA
 #define SYNTH_IN_Pin GPIO_PIN_12
 #define SYNTH_IN_GPIO_Port GPIOB
 
@@ -102,6 +104,9 @@ void notEnoughTimeError(void);
 #define TOTAL_TAPS (FILTER_B1_ORDER+1+FILTER_B2_ORDER+1+FILTER_B_NOISE_ORDER+1)
 #define DIFFERENCE_CHRISTOV_STATE 2
 #define DIFFERENCE_ENGZEE_STATE 4
+
+// SPI Handle
+#define SD_SPI_HANDLE hspi1
 
 /* USER CODE END Private defines */
 

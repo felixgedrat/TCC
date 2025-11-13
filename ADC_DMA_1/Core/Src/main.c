@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "fatfs.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -51,6 +52,8 @@
 ADC_HandleTypeDef hadc1;
 DMA_HandleTypeDef hdma_adc1;
 
+SPI_HandleTypeDef hspi1;
+
 TIM_HandleTypeDef htim2;
 
 /* USER CODE BEGIN PV */
@@ -70,6 +73,7 @@ static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_TIM2_Init(void);
+static void MX_SPI1_Init(void);
 /* USER CODE BEGIN PFP */
 int _write(int file, char *ptr, int len);
 void notEnoughTimeError(void);
@@ -157,6 +161,16 @@ int main(void)
 	engzee_state.fs = 250;
 	christov_state.fs = 250;
 
+	/* --------------------------- FatFs stuff ----------------------------------------*/
+
+	FATFS FatFs;
+	FIL fil;
+	FRESULT fres;
+	uint16_t buffer[100] = {245, 440, 627, 810, 986, 1157, 1335, 1510, 1578, 1677, 1850, 2032, 2204, 2379, 2558, 2741, 2912, 3092, 3272, 3445, 3617, 3791, 3964, 4130, 4289, 4468, 4668, 4862, 5054, 5234, 5412, 5588, 5761, 5922, 6085, 6247, 6421, 6603, 6782, 6948, 7117, 7286, 7449, 7614, 7781, 7950, 8114, 8283, 8455, 8624, 8793, 8967, 9141, 9310, 9482, 9657, 9822, 9988, 10154, 10317, 10480, 10651, 10826, 10995, 11170, 11348, 11519, 11688, 11859, 12028, 12192, 12362, 12534, 12700, 12871, 13045, 13217, 13382, 13551, 13722, 13885, 14046, 14211, 14377, 14534, 14694, 14857, 15019, 15182, 15357, 15535, 15707, 15884, 16064, 16235, 16405, 16578, 16753, 16920};
+	uint8_t len_buffer = 100;
+	UINT bytes_written;
+	uint8_t fname[8] = {'S', '0', '0', '.', 't', 'x', 't', 0}; // file name to open
+	char text_line[10];
 
   /* USER CODE END 1 */
 
@@ -181,7 +195,45 @@ int main(void)
   MX_DMA_Init();
   MX_ADC1_Init();
   MX_TIM2_Init();
+  MX_SPI1_Init();
+  MX_FATFS_Init();
   /* USER CODE BEGIN 2 */
+
+  /* ---------------------------FatFs test start ----------------------------------------*/
+  HAL_Delay(1000);
+    fres = FR_NOT_READY;
+    for (int i = 0; (i<10) && (fres!= FR_OK); i++) {
+  	  fres = f_mount(&FatFs,"",1);
+  	  HAL_Delay(500);
+    }
+
+    if (fres != FR_OK ){
+  	  while(1);
+    }
+
+    fres = f_open(&fil, (TCHAR*)fname, FA_CREATE_ALWAYS | FA_WRITE);
+
+    if (fres == FR_OK) {
+          // 2. Itere sobre o buffer de números
+          for (int i = 0; i < len_buffer; i++) {
+
+              // Converte o número (ex: 245) para a string "245\n"
+              // O '\n' é a quebra de linha para separar os valores
+              int len = snprintf(text_line, sizeof(text_line), "%u\n", buffer[i]);
+
+              // 3. Escreve a string (texto) no arquivo
+              fres = f_write(&fil, text_line, len, &bytes_written);
+
+              if (fres != FR_OK || bytes_written != len) {
+                  // Se o FatFs não conseguiu escrever todos os bytes, pare
+                  break;
+              }
+          }
+      }
+      f_close(&fil);
+      f_mount(NULL, "", 0);
+
+    /* ---------------------------FatFs test end ----------------------------------------*/
 	HAL_TIM_Base_Start(&htim2);
 	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);	// Turns LED OFF
 
@@ -367,6 +419,44 @@ static void MX_ADC1_Init(void)
 }
 
 /**
+  * @brief SPI1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_SPI1_Init(void)
+{
+
+  /* USER CODE BEGIN SPI1_Init 0 */
+
+  /* USER CODE END SPI1_Init 0 */
+
+  /* USER CODE BEGIN SPI1_Init 1 */
+
+  /* USER CODE END SPI1_Init 1 */
+  /* SPI1 parameter configuration*/
+  hspi1.Instance = SPI1;
+  hspi1.Init.Mode = SPI_MODE_MASTER;
+  hspi1.Init.Direction = SPI_DIRECTION_2LINES;
+  hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
+  hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
+  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
+  hspi1.Init.NSS = SPI_NSS_SOFT;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256;
+  hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
+  hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
+  hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hspi1.Init.CRCPolynomial = 10;
+  if (HAL_SPI_Init(&hspi1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN SPI1_Init 2 */
+
+  /* USER CODE END SPI1_Init 2 */
+
+}
+
+/**
   * @brief TIM2 Initialization Function
   * @param None
   * @retval None
@@ -447,6 +537,9 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
 
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(SD_CS_GPIO_Port, SD_CS_Pin, GPIO_PIN_RESET);
+
   /*Configure GPIO pin : LED_Pin */
   GPIO_InitStruct.Pin = LED_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -459,6 +552,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(PB_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : SD_CS_Pin */
+  GPIO_InitStruct.Pin = SD_CS_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(SD_CS_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : SYNTH_IN_Pin */
   GPIO_InitStruct.Pin = SYNTH_IN_Pin;
