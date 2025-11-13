@@ -81,6 +81,13 @@ void notEnoughTimeError(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+// FATFS variables
+uint8_t fname[8] = {'S', '0', '0', '.', 't', 'x', 't', 0}; // file name to open
+uint8_t condchar[5] = {'S', 'M', 'W', 'J', 'B'}; // Chars for each condition
+uint8_t start_subject = 2;
+uint8_t end_subject = 	2;
+uint8_t current_subject;
+uint8_t cond_idx = 0;
 
 /* USER CODE END 0 */
 
@@ -101,13 +108,6 @@ int main(void)
 									FLOAT_1div10, FLOAT_1div10, FLOAT_1div10, FLOAT_1div10,
 																FLOAT_1div10, FLOAT_1div10 };
 
-	// Set flags
-	firstHalfFull = false;			// First Half of buffer is full and ready to be used
-	secondHalfFull = false;			// Second Half of buffer is full and ready to be used
-	lastBuffer = false;				// Last buffer will be processed (no more ECG is being sent)
-	finishedSampling = false;		// Finish detection
-	fill = 0;						// Indicates which half is being processed
-
 	/* ---------------------------INITIALIZE STRUCTS ----------------------------------------*/
 	// Structs for signals
 	Signal unfiltered_ecg;		// Unfiltered ECG sampled by ADC (casted to float)
@@ -119,57 +119,17 @@ int main(void)
 	Signal diff_filtered_C;		// Signal after final filtering (Christov)
 	Signal diff_filtered_E;		// Signal after final filtering (Engzee)
 
-	// Zeroes all fields
-	memset(&unfiltered_ecg,0,sizeof(unfiltered_ecg));
-	memset(&filtered_ecg_mid,0,sizeof(filtered_ecg_mid));
-	memset(&filtered_ecg_C, 0, sizeof(filtered_ecg_C));
-	memset(&filtered_ecg_E, 0, sizeof(filtered_ecg_E));
-	memset(&diff_C, 0, sizeof(diff_C));
-	memset(&diff_E, 0, sizeof(diff_E));
-	memset(&diff_filtered_C, 0, sizeof(diff_filtered_C));
-	memset(&diff_filtered_E, 0, sizeof(diff_filtered_E));
-
-	// Implements filter state and signal sizes
-	unfiltered_ecg.len_state = 		FILTER_B1_ORDER;
-	filtered_ecg_mid.len_state = 	FILTER_B2_ORDER;
-	filtered_ecg_C.len_state = 		DIFFERENCE_CHRISTOV_STATE;
-	filtered_ecg_E.len_state = 		DIFFERENCE_ENGZEE_STATE;
-	diff_C.len_state = 				FILTER_B_NOISE_ORDER;
-	diff_E.len_state = 				FILTER_B_NOISE_ORDER;
-
-	unfiltered_ecg.len_signal = 	BUF_LEN_HALF;
-	filtered_ecg_mid.len_signal= 	BUF_LEN_HALF;
-	filtered_ecg_C.len_signal = 	BUF_LEN_HALF;
-	filtered_ecg_E.len_signal = 	BUF_LEN_HALF;
-	diff_C.len_signal = 			BUF_LEN_HALF;
-	diff_E.len_signal = 			BUF_LEN_HALF;
-	diff_filtered_C.len_signal= 	BUF_LEN_HALF;
-	diff_filtered_E.len_signal= 	BUF_LEN_HALF;
-
 	// Structs for algorithm states
 	EngzeeState engzee_state;
 	ChristovState christov_state;
 	FinalDetect final_detect;
-	memset(&engzee_state, 0, sizeof(EngzeeState)); 		// zera todos os campos
-	memset(&christov_state, 0, sizeof(ChristovState)); 	// zera todos os campos
-	memset(&final_detect, 0, sizeof(FinalDetect)); 		// zera todos os campos
-	float increment = 0.0016064257028112205;
-	for (int j = 0; j < ms1200 - ms200; ++j) {
-			engzee_state.M_slope[j] = 1.0 - j * increment;
-			christov_state.M_slope[j] = engzee_state.M_slope[j];
-		}
-	engzee_state.fs = 250;
-	christov_state.fs = 250;
 
 	/* --------------------------- FatFs stuff ----------------------------------------*/
 
 	FATFS FatFs;
 	FIL fil;
 	FRESULT fres;
-	uint16_t buffer[100] = {245, 440, 627, 810, 986, 1157, 1335, 1510, 1578, 1677, 1850, 2032, 2204, 2379, 2558, 2741, 2912, 3092, 3272, 3445, 3617, 3791, 3964, 4130, 4289, 4468, 4668, 4862, 5054, 5234, 5412, 5588, 5761, 5922, 6085, 6247, 6421, 6603, 6782, 6948, 7117, 7286, 7449, 7614, 7781, 7950, 8114, 8283, 8455, 8624, 8793, 8967, 9141, 9310, 9482, 9657, 9822, 9988, 10154, 10317, 10480, 10651, 10826, 10995, 11170, 11348, 11519, 11688, 11859, 12028, 12192, 12362, 12534, 12700, 12871, 13045, 13217, 13382, 13551, 13722, 13885, 14046, 14211, 14377, 14534, 14694, 14857, 15019, 15182, 15357, 15535, 15707, 15884, 16064, 16235, 16405, 16578, 16753, 16920};
-	uint8_t len_buffer = 100;
 	UINT bytes_written;
-	uint8_t fname[8] = {'S', '0', '0', '.', 't', 'x', 't', 0}; // file name to open
 	char text_line[10];
 
   /* USER CODE END 1 */
@@ -199,39 +159,68 @@ int main(void)
   MX_FATFS_Init();
   /* USER CODE BEGIN 2 */
 
+  current_subject = start_subject;
+
+  while (current_subject <= end_subject) {
+
+	// Set flags
+	firstHalfFull = false;			// First Half of buffer is full and ready to be used
+	secondHalfFull = false;			// Second Half of buffer is full and ready to be used
+	lastBuffer = false;				// Last buffer will be processed (no more ECG is being sent)
+	finishedSampling = false;		// Finish detection
+	fill = 0;						// Indicates which half is being processed
+
+	// Zeroes all fields
+	memset(&unfiltered_ecg,0,sizeof(unfiltered_ecg));
+	memset(&filtered_ecg_mid,0,sizeof(filtered_ecg_mid));
+	memset(&filtered_ecg_C, 0, sizeof(filtered_ecg_C));
+	memset(&filtered_ecg_E, 0, sizeof(filtered_ecg_E));
+	memset(&diff_C, 0, sizeof(diff_C));
+	memset(&diff_E, 0, sizeof(diff_E));
+	memset(&diff_filtered_C, 0, sizeof(diff_filtered_C));
+	memset(&diff_filtered_E, 0, sizeof(diff_filtered_E));
+
+	// Zeroes structs for algorithm states
+	memset(&engzee_state, 0, sizeof(EngzeeState)); 		// zera todos os campos
+	memset(&christov_state, 0, sizeof(ChristovState)); 	// zera todos os campos
+	memset(&final_detect, 0, sizeof(FinalDetect)); 		// zera todos os campos
+	float increment = 0.0016064257028112205;
+	for (int j = 0; j < ms1200 - ms200; ++j) {
+			engzee_state.M_slope[j] = 1.0 - j * increment;
+			christov_state.M_slope[j] = engzee_state.M_slope[j];
+		}
+
+	// Implements filter state and signal sizes
+	unfiltered_ecg.len_state = 		FILTER_B1_ORDER;
+	filtered_ecg_mid.len_state = 	FILTER_B2_ORDER;
+	filtered_ecg_C.len_state = 		DIFFERENCE_CHRISTOV_STATE;
+	filtered_ecg_E.len_state = 		DIFFERENCE_ENGZEE_STATE;
+	diff_C.len_state = 				FILTER_B_NOISE_ORDER;
+	diff_E.len_state = 				FILTER_B_NOISE_ORDER;
+
+	unfiltered_ecg.len_signal = 	BUF_LEN_HALF;
+	filtered_ecg_mid.len_signal= 	BUF_LEN_HALF;
+	filtered_ecg_C.len_signal = 	BUF_LEN_HALF;
+	filtered_ecg_E.len_signal = 	BUF_LEN_HALF;
+	diff_C.len_signal = 			BUF_LEN_HALF;
+	diff_E.len_signal = 			BUF_LEN_HALF;
+	diff_filtered_C.len_signal= 	BUF_LEN_HALF;
+	diff_filtered_E.len_signal= 	BUF_LEN_HALF;
+
+	engzee_state.fs = 250;
+	christov_state.fs = 250;
+
   /* ---------------------------FatFs test start ----------------------------------------*/
   HAL_Delay(1000);
-    fres = FR_NOT_READY;
-    for (int i = 0; (i<10) && (fres!= FR_OK); i++) {
-  	  fres = f_mount(&FatFs,"",1);
-  	  HAL_Delay(500);
-    }
-
-    if (fres != FR_OK ){
-  	  while(1);
-    }
-
-    fres = f_open(&fil, (TCHAR*)fname, FA_CREATE_ALWAYS | FA_WRITE);
-
-    if (fres == FR_OK) {
-          // 2. Itere sobre o buffer de números
-          for (int i = 0; i < len_buffer; i++) {
-
-              // Converte o número (ex: 245) para a string "245\n"
-              // O '\n' é a quebra de linha para separar os valores
-              int len = snprintf(text_line, sizeof(text_line), "%u\n", buffer[i]);
-
-              // 3. Escreve a string (texto) no arquivo
-              fres = f_write(&fil, text_line, len, &bytes_written);
-
-              if (fres != FR_OK || bytes_written != len) {
-                  // Se o FatFs não conseguiu escrever todos os bytes, pare
-                  break;
-              }
-          }
+      fres = FR_NOT_READY;
+      for (int i = 0; (i<10) && (fres!= FR_OK); i++) {
+    	  fres = f_mount(&FatFs,"",1);
+    	  HAL_Delay(500);
       }
-      f_close(&fil);
-      f_mount(NULL, "", 0);
+
+      if (fres != FR_OK ){
+    	  customError();
+      }
 
     /* ---------------------------FatFs test end ----------------------------------------*/
 	HAL_TIM_Base_Start(&htim2);
@@ -299,7 +288,7 @@ int main(void)
 		if (!finishedSampling) {
 			if ((fill == 1 && firstHalfFull) ||
 				(fill == 2 && secondHalfFull)) {
-				notEnoughTimeError();
+				customError();
 			} else if (fill == 1 && secondHalfFull) {
 				fill = 2;
 			} else if (fill == 2 && firstHalfFull) {
@@ -317,6 +306,58 @@ int main(void)
 	tradeoff(&engzee_state,&christov_state, &final_detect);
 	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);	// Turns LED off when done sampling
 	HAL_ADC_Stop_DMA(&hadc1);
+
+	/* ----------------------- Save detections in SD card -------------------------------------*/
+	HAL_Delay(1000);
+	fres = FR_NOT_READY;
+	bytes_written = 0;
+
+	for (int i = 0; (i<10) && (fres!= FR_OK); i++) {
+		  fres = f_mount(&FatFs,"",1);
+		  HAL_Delay(500);
+	  }
+
+	  if (fres != FR_OK ){
+		  customError();
+	  }
+
+	fname[0] = condchar[cond_idx];
+	fname[1] = (current_subject / 10) + 0x30;
+	fname[2] = (current_subject % 10) + 0x30;
+	fres = f_open(&fil, (TCHAR*)fname, FA_CREATE_ALWAYS | FA_WRITE);
+
+	if (fres == FR_OK) {
+		  // 2. Itere sobre o buffer de números
+		  for (int i = 0; i < final_detect.len_detections; i++) {
+
+			  // Converte o número (ex: 245) para a string "245\n"
+			  // O '\n' é a quebra de linha para separar os valores
+			  int len = snprintf(text_line, sizeof(text_line), "%lu\n", final_detect.detections[i]);
+
+			  // 3. Escreve a string (texto) no arquivo
+			  fres = f_write(&fil, text_line, len, &bytes_written);
+
+			  if (fres != FR_OK || bytes_written != len) {
+				  // Se o FatFs não conseguiu escrever todos os bytes, pare
+				  customError();
+			  }
+		  }
+	  }
+	  f_close(&fil);
+	  f_mount(NULL, "", 0);
+
+	  /* -------------------------------------------------------------------*/
+
+	if(cond_idx < 5) {
+		cond_idx++;
+	} else if (cond_idx == 5) {
+		cond_idx = 0;
+		current_subject++;
+	} else {
+		customError();
+	}
+  }
+
 	return 0;
   /* USER CODE END 3 */
 }
@@ -600,11 +641,13 @@ int _write(int file, char *ptr, int len)
   * @brief  This function is executed in case the circular buffer is starting to be overwritten but processing is not yet over.
   * @retval None
   */
-void notEnoughTimeError(void){
+void customError(void){
+	while (1) {
 	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);	// Turns LED off when done sampling
 	HAL_Delay(200);
 	HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);	// Turns LED off when done sampling
 	HAL_Delay(200);
+	}
 }
 
 /* USER CODE END 4 */

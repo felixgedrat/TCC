@@ -62,7 +62,7 @@ typedef struct {
 void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
-void notEnoughTimeError(void);
+void customError(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
